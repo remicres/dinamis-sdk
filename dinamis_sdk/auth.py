@@ -133,8 +133,12 @@ class OAuth2Session:
         cfg_pth = appdirs.user_config_dir(appname='dinamis_sdk_auth')
         if not os.path.exists(cfg_pth):
             log.info(f"Creating config path {cfg_pth}")
-            os.makedirs(cfg_pth)
-        self.jwt_file = os.path.join(cfg_pth, "token")
+            try:
+                os.makedirs(cfg_pth)
+                self.jwt_file = os.path.join(cfg_pth, "token")
+            except PermissionError:
+                log.warn("Unable to create config path. Tokens won't be saved to disk.")
+                self.jwt_file = None
         self.jwt_issuance = datetime.datetime(year=1, month=1, day=1)
         self.jwt = None
 
@@ -144,9 +148,10 @@ class OAuth2Session:
 
         """
         self.jwt_issuance = now
-        with open(self.jwt_file, 'w', encoding='UTF-8') as fp:
-            json.dump(self.jwt.dict(), fp)
-        log.info(f"Token saved in {self.jwt_file}")
+        if self.jwt_file:
+            with open(self.jwt_file, 'w', encoding='UTF-8') as fp:
+                json.dump(self.jwt.dict(), fp)
+            log.info(f"Token saved in {self.jwt_file}")
 
     def refresh_if_needed(self):
         """
@@ -174,7 +179,7 @@ class OAuth2Session:
     def get_access_token(self):
         if not self.jwt:
             # First JWT initialisation
-            if os.path.isfile(self.jwt_file):
+            if self.jwt_file and os.path.isfile(self.jwt_file):
                 log.info(f"Trying to grab credentials from {self.jwt_file}")
                 try:
                     with open(self.jwt_file, encoding='UTF-8') as json_file:
