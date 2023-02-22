@@ -9,3 +9,4 @@ api = pystac_client.Client.open(
    modifier=dinamis_sdk.sign_inplace,
 )
 ```
+
