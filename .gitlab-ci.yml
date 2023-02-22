@@ -27,7 +27,7 @@ stages:
 make_env:
   stage: Environment
   before_script:
-    - sudo apt update && sudo apt install -y virtualenv
+    - apt update && apt install -y virtualenv
   script:
     - virtualenv --system-site-packages venv
     - source venv/bin/activate
