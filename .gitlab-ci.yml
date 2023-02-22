@@ -1,0 +1,246 @@
+image: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+
+variables:
+  OTBTF_VERSION: 3.3.2
+  OTB_BUILD: /src/otb/build/OTB/build  # Local OTB build directory
+  OTBTF_SRC: /src/otbtf  # Local OTBTF source directory
+  OTB_TEST_DIR: $OTB_BUILD/Testing/Temporary  # OTB testing directory
+  ARTIFACT_TEST_DIR: $CI_PROJECT_DIR/testing
+  CRC_BOOK_TMP: /tmp/crc_book_tests_tmp
+  API_TEST_TMP: /tmp/api_tests_tmp
+  DATADIR: $CI_PROJECT_DIR/test/data
+  DOCKER_BUILDKIT: 1
+  DOCKER_DRIVER: overlay2
+  CACHE_IMAGE_BASE: $CI_REGISTRY_IMAGE:otbtf-base
+  CACHE_IMAGE_BUILDER: $CI_REGISTRY_IMAGE:builder
+  BRANCH_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  DEV_IMAGE: $CI_REGISTRY_IMAGE:cpu-basic-dev-testing
+  CI_REGISTRY_PUBIMG: $CI_REGISTRY_IMAGE:$OTBTF_VERSION
+  DOCKERHUB_BASE: mdl4eo/otbtf
+  DOCKERHUB_IMAGE_BASE: ${DOCKERHUB_BASE}:${OTBTF_VERSION}
+  
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID || $CI_COMMIT_REF_NAME =~ /master/ # Execute jobs in merge request context, or commit in master branch
+    
+stages:
+  - Build
+  - Static Analysis
+  - Test
+  - Applications Test
+  - Update dev image
+  - Ship
+
+.docker_build_base:
+  allow_failure: false
+  tags: [godzilla]
+  image: docker/compose:latest
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_DRIVER: overlay2
+  services:
+    - name: docker:dind
+  before_script:
+    - ping gitlab.irstea.fr -c 4
+    - ping $CI_REGISTRY -c 4
+    - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  timeout: 10 hours
+
+
+docker image:
+  extends: .docker_build_base
+  stage: Build
+  except:
+    - develop
+  script:
+    - >
+      docker build
+      --target otbtf-base
+      --network="host"
+      --cache-from $CACHE_IMAGE_BASE
+      --tag $CACHE_IMAGE_BASE
+      --build-arg BASE_IMG="ubuntu:20.04"
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      "."
+    - docker push $CACHE_IMAGE_BASE
+    - >
+      docker build
+      --target builder
+      --network="host"
+      --cache-from $CACHE_IMAGE_BASE
+      --cache-from $CACHE_IMAGE_BUILDER
+      --tag $CACHE_IMAGE_BUILDER
+      --build-arg OTBTESTS="true"
+      --build-arg KEEP_SRC_OTB="true"
+      --build-arg BZL_CONFIGS=""
+      --build-arg BASE_IMG="ubuntu:20.04"
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      "."
+    - docker push $CACHE_IMAGE_BUILDER
+    - >
+      docker build
+      --network="host"
+      --cache-from $CACHE_IMAGE_BASE
+      --cache-from $CACHE_IMAGE_BUILDER
+      --cache-from $BRANCH_IMAGE
+      --cache-from $DEV_IMAGE
+      --tag $BRANCH_IMAGE
+      --build-arg OTBTESTS="true"
+      --build-arg KEEP_SRC_OTB="true"
+      --build-arg BZL_CONFIGS=""
+      --build-arg BASE_IMG="ubuntu:20.04"
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      "."
+    - docker push $BRANCH_IMAGE
+
+.static_analysis_base:
+  stage: Static Analysis
+  allow_failure: true
+
+flake8:
+  extends: .static_analysis_base
+  script:
+    - sudo apt update && sudo apt install flake8 -y
+    - python -m flake8 --max-line-length=120 --per-file-ignores="__init__.py:F401" $OTBTF_SRC/otbtf
+
+pylint:
+  extends: .static_analysis_base
+  script:
+    - sudo apt update && sudo apt install pylint -y
+    - pylint --logging-format-style=old --disable=too-many-nested-blocks,too-many-locals,too-many-statements,too-few-public-methods,too-many-instance-attributes,too-many-arguments --ignored-modules=tensorflow --max-line-length=120 --logging-format-style=new $OTBTF_SRC/otbtf
+
+codespell:
+  extends: .static_analysis_base
+  script:
+    - sudo pip install codespell && codespell
+    
+cppcheck:
+  extends: .static_analysis_base
+  script:
+    - sudo apt update && sudo apt install cppcheck -y
+    - cd $OTBTF_SRC/ && cppcheck --enable=all --error-exitcode=1 -I include/ --suppress=missingInclude --suppress=unusedFunction .
+
+.tests_base:
+  artifacts:
+    paths:
+      - $ARTIFACT_TEST_DIR/*.*
+    expire_in: 1 week
+    when: on_failure
+
+ctest:
+  extends: .tests_base
+  stage: Test
+  script:
+    - cd $OTB_BUILD/ && sudo ctest -L OTBTensorflow  # Run ctest
+  after_script:
+    - cp -r $OTB_TEST_DIR $ARTIFACT_TEST_DIR
+
+.applications_test_base:
+  extends: .tests_base
+  stage: Applications Test
+  before_script:
+    - pip3 install pytest pytest-cov pytest-order
+    - mkdir -p $ARTIFACT_TEST_DIR
+    - cd $CI_PROJECT_DIR
+
+crc_book:
+  extends: .applications_test_base
+  script:
+    - mkdir -p $CRC_BOOK_TMP
+    - TMPDIR=$CRC_BOOK_TMP python -m pytest --junitxml=$CI_PROJECT_DIR/report_tutorial.xml $OTBTF_SRC/test/tutorial_unittest.py
+  after_script:
+    - cp $CRC_BOOK_TMP/*.* $ARTIFACT_TEST_DIR/
+    
+sr4rs:
+  extends: .applications_test_base
+  script:
+    - wget -O sr4rs_sentinel2_bands4328_france2020_savedmodel.zip
+      https://nextcloud.inrae.fr/s/EZL2JN7SZyDK8Cf/download/sr4rs_sentinel2_bands4328_france2020_savedmodel.zip
+    - unzip -o sr4rs_sentinel2_bands4328_france2020_savedmodel.zip
+    - wget -O sr4rs_data.zip https://nextcloud.inrae.fr/s/kDms9JrRMQE2Q5z/download
+    - unzip -o sr4rs_data.zip
+    - rm -rf sr4rs
+    - git clone https://github.com/remicres/sr4rs.git
+    - export PYTHONPATH=$PYTHONPATH:$PWD/sr4rs
+    - python -m pytest --junitxml=$ARTIFACT_TEST_DIR/report_sr4rs.xml $OTBTF_SRC/test/sr4rs_unittest.py
+
+otbtf_api:
+  extends: .applications_test_base
+  script:
+    - mkdir $API_TEST_TMP
+    - TMPDIR=$API_TEST_TMP python -m pytest --junitxml=$ARTIFACT_TEST_DIR/report_api.xml $OTBTF_SRC/test/api_unittest.py
+  after_script:
+    - cp $API_TEST_TMP/*.* $ARTIFACT_TEST_DIR/
+
+deploy_cpu-dev-testing:
+  stage: Update dev image
+  extends: .docker_build_base
+  except:
+    - master
+  script:
+    - docker pull $BRANCH_IMAGE
+    - docker tag $BRANCH_IMAGE $DEV_IMAGE
+    - docker push $DEV_IMAGE
+
+.ship base:
+  extends: .docker_build_base
+  stage: Ship
+  only:
+    - master
+
+deploy_cpu:
+  extends: .ship base
+  variables:
+    IMAGE_CPU: $CI_REGISTRY_PUBIMG-cpu
+    IMAGE_CPUDEV: $CI_REGISTRY_PUBIMG-cpu-dev
+    DOCKERHUB_CPU: $DOCKERHUB_IMAGE_BASE-cpu
+    DOCKERHUB_CPUDEV: $DOCKERHUB_IMAGE_BASE-cpu-dev
+    DOCKERHUB_LATEST: $DOCKERHUB_BASE:latest
+  script:
+    # cpu
+    - docker build --network='host' --tag $IMAGE_CPU --build-arg BASE_IMG=ubuntu:20.04 --build-arg BZL_CONFIGS="" .
+    - docker push $IMAGE_CPU
+    # cpu-dev
+    - docker build --network='host' --tag $IMAGE_CPUDEV --build-arg BASE_IMG=ubuntu:20.04 --build-arg BZL_CONFIGS="" --build-arg KEEP_SRC_OTB=true .
+    - docker push $IMAGE_CPUDEV
+    # push images on dockerhub
+    - echo -n $DOCKERHUB_TOKEN | docker login -u mdl4eo --password-stdin
+    - docker tag $IMAGE_CPU $DOCKERHUB_CPU
+    - docker push $DOCKERHUB_CPU
+    - docker tag $IMAGE_CPUDEV $DOCKERHUB_CPUDEV
+    - docker push $DOCKERHUB_CPUDEV
+    # latest = cpu image
+    - docker tag $IMAGE_CPU $DOCKERHUB_LATEST
+    - docker push $DOCKERHUB_LATEST
+
+deploy_gpu:
+  extends: .ship base
+  variables:
+    IMAGE_GPU: $CI_REGISTRY_PUBIMG-gpu
+    IMAGE_GPUDEV: $CI_REGISTRY_PUBIMG-gpu-dev
+    IMAGE_GPUOPT: $CI_REGISTRY_PUBIMG-gpu-opt
+    IMAGE_GPUOPTDEV: $CI_REGISTRY_PUBIMG-gpu-opt-dev
+    DOCKERHUB_GPU: $DOCKERHUB_IMAGE_BASE-gpu
+    DOCKERHUB_GPUDEV: $DOCKERHUB_IMAGE_BASE-gpu-dev
+  script:
+    # gpu-opt
+    - docker build --network='host' --tag $IMAGE_GPUOPT --build-arg BASE_IMG=nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 .
+    - docker push $IMAGE_GPUOPT
+    # gpu-opt-dev
+    - docker build --network='host' --tag $IMAGE_GPUOPTDEV --build-arg BASE_IMG=nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 --build-arg KEEP_SRC_OTB=true .
+    - docker push $IMAGE_GPUOPTDEV
+    # gpu-basic
+    - docker build --network='host' --tag $IMAGE_GPU --build-arg BASE_IMG=nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 --build-arg BZL_CONFIGS="" .
+    - docker push $IMAGE_GPU
+    # gpu-basic-dev
+    - docker build --network='host' --tag $IMAGE_GPUDEV --build-arg BZL_CONFIGS="" --build-arg BASE_IMG=nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 --build-arg KEEP_SRC_OTB=true .
+    - docker push $IMAGE_GPUDEV
+    # push gpu-basic* images on dockerhub
+    - echo -n $DOCKERHUB_TOKEN | docker login -u mdl4eo --password-stdin
+    - docker tag $IMAGE_GPU $DOCKERHUB_GPU
+    - docker push $DOCKERHUB_GPU
+    - docker tag $IMAGE_GPUDEV $DOCKERHUB_GPUDEV
+    - docker push $DOCKERHUB_GPUDEV
+
+
