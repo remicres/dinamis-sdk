@@ -1,14 +1,5 @@
 default:
   image: python:3.8-slim
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - .cache/pip/
-      - venv/
-      - test_data/
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 workflow:
   rules:
@@ -16,54 +7,39 @@ workflow:
     - if: $CI_COMMIT_BRANCH == 'main'
 
 stages:
-  - Environment
   - Static Analysis
   - Install
   - Documentation
 #  - Test
-
-# --------------------------------------------- Init venv --------------------------------------------------------------
-
-make_env:
-  stage: Environment
-  before_script:
-    - apt update && apt install -y virtualenv
-  script:
-    - virtualenv --system-site-packages venv
-    - source venv/bin/activate
-    - pip install --upgrade pip
-    - pip install flake8 pylint codespell
-
 
 # --------------------------------------------- Static analysis --------------------------------------------------------
 
 .static_analysis_base:
   stage: Static Analysis
   allow_failure: true
-  before_script:
-    - source venv/bin/activate
 
 flake8:
   extends: .static_analysis_base
   script:
+    - pip install flake8
     - flake8 --max-line-length=120 $PWD/dinamis_sdk
 
 pylint:
   extends: .static_analysis_base
   script:
-    pylint $PWD/dinamis_sdk
+    - pip install pylint
+    - pylint $PWD/dinamis_sdk
 
 codespell:
   extends: .static_analysis_base
   script: 
+    - pip install codespell
     - codespell --skip="*.png,*.template,*.pbs,*.jpg,*git/lfs*,*venv/*,*test_data/*"
 
 # ----------------------------------------------------- Install --------------------------------------------------------
 
 pip_install:
   stage: Install
-  before_script:
-    - source venv/bin/activate
   script:
     - pip install .
 
@@ -72,7 +48,6 @@ pip_install:
 .doc_base:
   stage: Documentation
   before_script:
-    - source venv/bin/activate
     - pip install mkdocstrings mkdocstrings[crystal,python] mkdocs-material mkdocs-gen-files mkdocs-section-index mkdocs-literate-nav mkdocs-mermaid2-plugin --upgrade
   artifacts:
     paths:
