@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 install_requires = ["requests", "qrcode", "appdirs", "pydantic", "pystac", "pystac_client"]
 
@@ -12,5 +12,6 @@ setup(
     license="MIT",
     zip_safe=False,
     install_requires=install_requires,
+    packages=find_packages(),
 )
 
