@@ -2,3 +2,4 @@
 */**/__pycache__
 .idea
 dinamis_sdk/test
+build
