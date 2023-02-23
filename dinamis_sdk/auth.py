@@ -77,7 +77,7 @@ class GrantMethodBase:
 
 
 class DeviceGrant(GrantMethodBase):
-    client_id = "gdal-client"
+    client_id = "gdal"
 
     def get_first_token(self):
         device_endpoint = f"{self.base_url}/auth/device"
