@@ -2,6 +2,14 @@
 
 Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 
+## Installation
+
+```commandline
+pip install https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/archive/main/dinamis-sdk-main.zip
+```
+
+## Quickstart
+
 ```python
 import dinamis_sdk
 import pystac_client
