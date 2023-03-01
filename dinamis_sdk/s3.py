@@ -1,29 +1,30 @@
 """
 Revamp of Microsoft Planetary Computer SAS, using S3 and custom URL signing endpoint instead
 """
-import re
-import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Mapping, TypeVar, cast
 import collections.abc
-from copy import deepcopy
-import warnings
-
-from functools import singledispatch
-from urllib.parse import urlparse, parse_qs
+import pystac_client
+import re
 import requests
 import requests.adapters
+import time
+import urllib3.util.retry
+import warnings
+from copy import deepcopy
+from datetime import datetime, timezone
+from functools import singledispatch
 from pydantic import BaseModel, Field
 from pystac import Asset, Item, ItemCollection, STACObjectType, Collection
-from pystac.utils import datetime_to_str
 from pystac.serialization.identify import identify_stac_object_type
+from pystac.utils import datetime_to_str
 from pystac_client import ItemSearch
-import pystac_client
-import urllib3.util.retry
-from .utils import log
+from typing import Any, Dict, Optional, Mapping, TypeVar, cast, List
+from urllib.parse import urlparse, parse_qs
+
+from .utils import log, SIGNED_URL_TTL_MARGIN
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
-S3_SIGNING_ENDPOINT = "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/sign"
+S3_SIGNING_ENDPOINT = "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
+#S3_SIGNING_ENDPOINT = "http://172.17.0.1:8000/"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
@@ -39,7 +40,6 @@ class URLBase(BaseModel):
     """Base model for responses."""
 
     expiry: datetime = Field(alias="expiry")
-    href: str = Field(alias="href")
 
     class Config:
         json_encoders = {datetime: datetime_to_str}
@@ -48,10 +48,16 @@ class URLBase(BaseModel):
 
 class SignedURL(URLBase):
     """Signed URL response"""
+    href: str = Field(alias="href")
 
     def ttl(self) -> float:
         """Number of seconds the token is still valid for"""
         return (self.expiry - datetime.now(timezone.utc)).total_seconds()
+
+
+class SignedURLBatch(URLBase):
+    """Signed URLs (batch of URLs) response"""
+    hrefs: dict = Field(alias="hrefs")
 
 
 # Cache of signing requests so we can reuse them
@@ -118,44 +124,48 @@ def sign_string(url: str, copy: bool = True) -> str:
     if is_vrt_string(url):
         return sign_vrt_string(url)
     else:
-        return sign_url(url)
+        return sign_urls(urls=[url])[url]
 
 
-def sign_url(url: str, copy: bool = True) -> str:
-    """Sign a URL or with a S3 Token
+def sign_urls(urls: List[str]) -> str:
+    """Sign URLs with a S3 Token
 
     Signing URL allows read access to files in storage.
 
     Args:
-        url (str): The HREF of the asset as a URL
+        urls: List of HREF to sign
 
             Single URLs can be found on a STAC Item's Asset ``href`` value. Only URLs to
             assets in S3 Storage are signed, other URLs are returned unmodified.
-        copy (bool): No effect.
 
     Returns:
-        str: The signed HREF
+        dict of signed HREF: key = original URL, value = signed URL
     """
-    stripped_url = url.rstrip("/")
-    parsed_url = urlparse(stripped_url)
-    if not parsed_url.netloc.endswith(S3_STORAGE_DOMAIN):
-        # Outside DINAMIS domain
-        return url
-    # elif parsed_url.netloc == "????":
-    #     # special case for public assets storing thumbnails...
-    #     return url
+    signed_urls = {}
+    for url in urls:
+        stripped_url = url.rstrip("/")
+        parsed_url = urlparse(stripped_url)
+        if not parsed_url.netloc.endswith(S3_STORAGE_DOMAIN):
+            # Outside DINAMIS domain
+            signed_urls[url] = url
+        # elif parsed_url.netloc == "????":
+        #     # special case for public assets storing thumbnails...
+        #     return url
+        else:
+            parsed_qs = parse_qs(parsed_url.query)
+            if set(parsed_qs) & {"X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-Credential"}:
+                #  looks like we've already signed it
+                signed_urls[url] = url
 
-    parsed_qs = parse_qs(parsed_url.query)
-    if set(parsed_qs) & {"X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-Credential"}:
-        #  looks like we've already signed it
-        return url
-
-    return get_signed_url(stripped_url).href
+    not_signed_urls = [url for url in urls if url not in signed_urls]
+    signed_urls.update({url: signed_url.href for url, signed_url in get_signed_urls(not_signed_urls).items()})
+    return signed_urls
 
 
 def _repl_vrt(m: re.Match) -> str:
     # replace all blob-storages URLs with a signed version.
-    return sign_url(m.string[slice(*m.span())])
+    url = m.string[slice(*m.span())]
+    return sign_urls(url)[url]
 
 
 def sign_vrt_string(vrt: str, copy: bool = True) -> str:
@@ -204,13 +214,17 @@ def sign_item(item: Item, copy: bool = True) -> Item:
 
     Returns:
         Item: An Item where all assets' HREFs have
-        been replaced with a signed version. In addition, a "msft:expiry"
+        been replaced with a signed version. In addition, an "expiry"
         property is added to the Item properties indicating the earliest
         expiry time for any assets that were signed.
     """
     if copy:
         item = item.clone()
+    urls = {key: asset.href for key, asset in item.assets.items()}
+    signed_urls = get_signed_urls(urls=urls)
     for key in item.assets:
+        url = urls[key]
+        item.assets[key] = signed_urls[url]
         _sign_asset_in_place(item.assets[key])
     return item
 
@@ -229,7 +243,9 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
     """
     if copy:
         asset = asset.clone()
-    return _sign_asset_in_place(asset)
+    asset.href = get_signed_urls([asset.href])[asset.href]
+    _sign_asset_in_place(asset)
+    return asset
 
 
 def _sign_asset_in_place(asset: Asset) -> Asset:
@@ -242,9 +258,8 @@ def _sign_asset_in_place(asset: Asset) -> Asset:
         Asset: Input Asset object modified in place: the HREF is replaced
         with a signed version.
     """
-    asset.href = sign(asset.href)
+    #asset.href = sign(asset.href)
     _sign_fsspec_asset_in_place(asset)
-    return asset
 
 
 def _sign_fsspec_asset_in_place(asset: AssetLike) -> None:
@@ -256,19 +271,9 @@ def _sign_fsspec_asset_in_place(asset: AssetLike) -> None:
         href = asset["href"]
 
 
-def sign_assets(item: Item) -> Item:
-    warnings.warn(
-        "'sign_assets' is deprecated and will be removed in a future version. Use "
-        "'sign_item' instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return sign_item(item)
-
-
 @sign.register(ItemCollection)
 def sign_item_collection(
-    item_collection: ItemCollection, copy: bool = True
+        item_collection: ItemCollection, copy: bool = True
 ) -> ItemCollection:
     """Sign a PySTAC item collection
 
@@ -279,13 +284,17 @@ def sign_item_collection(
     Returns:
         ItemCollection: An ItemCollection where all assets'
         HREFs for each item have been replaced with a signed version. In addition,
-        a "msft:expiry" property is added to the Item properties indicating the
+        a "expiry" property is added to the Item properties indicating the
         earliest expiry time for any assets that were signed.
     """
     if copy:
         item_collection = item_collection.clone()
+    urls = {key: asset.href for item in item_collection for key, asset in item.assets.items()}
+    signed_urls = get_signed_urls(urls=urls)
     for item in item_collection:
         for key in item.assets:
+            url = item.assets[key]
+            item.assets[key].href = signed_urls(url)
             _sign_asset_in_place(item.assets[key])
     return item_collection
 
@@ -301,7 +310,7 @@ def _search_and_sign(search: ItemSearch, copy: bool = True) -> ItemCollection:
     Returns:
         ItemCollection: The resulting ItemCollection of the search where all assets'
         HREFs for each item have been replaced with a signed version. In addition,
-        a "msft:expiry" property is added to the Item properties indicating the
+        a "expiry" property is added to the Item properties indicating the
         earliest expiry time for any assets that were signed.
     """
     if pystac_client.__version__ >= "0.5.0":
@@ -320,7 +329,11 @@ def sign_collection(collection: Collection, copy: bool = True) -> Collection:
         if assets and not collection.assets:
             collection.assets = deepcopy(assets)
 
+    urls = [collection.assets[key].href for key in collection.assets]
+    signed_urls = get_signed_urls(urls=urls)
     for key in collection.assets:
+        url = collection.assets[key].href
+        collection.assets[key].href = signed_urls[url]
         _sign_asset_in_place(collection.assets[key])
     return collection
 
@@ -351,18 +364,26 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
 
     types = (STACObjectType.ITEM, STACObjectType.COLLECTION)
     if all(k in mapping for k in ["version", "templates", "refs"]):
-        for k, v in mapping["templates"].items():
-            mapping["templates"][k] = sign_url(v)
+        urls = list(mapping["templates"].values())
+        signed_urls = get_signed_urls(urls=urls)
+        for k, url in mapping["templates"].items():
+            mapping["templates"][k] = signed_urls[url]
 
     elif identify_stac_object_type(cast(Dict[str, Any], mapping)) in types:
+        urls = [v["href"] for v in mapping["assets"].values()]
+        signed_urls = get_signed_urls(urls=urls)
         for k, v in mapping["assets"].items():
-            v["href"] = sign_url(v["href"])
+            url = v["href"]
+            v["href"] = signed_urls[url]
             _sign_fsspec_asset_in_place(v)
 
     elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
+        urls = [v["href"] for feat in mapping["features"] for v in feat.get("assets", {}).values()]
+        signed_urls = get_signed_urls(urls=urls)
         for feature in mapping["features"]:
             for k, v in feature.get("assets", {}).items():
-                v["href"] = sign_url(v["href"])
+                url = v["href"]
+                v["href"] = signed_urls[url]
                 _sign_fsspec_asset_in_place(v)
 
     return mapping
@@ -371,15 +392,15 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
 sign_reference_file = sign_mapping
 
 
-def get_signed_url(url: str, retry_total: int = 10, retry_backoff_factor: float = 0.8) -> SignedURL:
+def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor: float = 0.8) -> Dict[str, SignedURL]:
     """
-    Get a signed URL.
+    Get multiple signed URLs.
 
     This will use the URL from the cache if it's present and not too close
     to expiring. The generated URL will be placed in the cache.
 
     Args:
-        url: url
+        urls: urls
         retry_total (int): The number of allowable retry attempts for REST API calls.
             Use retry_total=0 to disable retries. A backoff factor to apply between
             attempts.
@@ -394,32 +415,45 @@ def get_signed_url(url: str, retry_total: int = 10, retry_backoff_factor: float 
     Returns:
         SignedURL: the signed URL
     """
+    log.debug(f"Get signed URLs for {urls}")
     t = time.time()
-    signed_url = CACHE.get(url)
     from .auth import get_access_token
     access_token = get_access_token()
-    # Refresh the token if there's less than a minute remaining,
-    # in order to give a small amount of buffer
-    if not signed_url or signed_url.ttl() < 60:
-        session = requests.Session()
-        retry = urllib3.util.retry.Retry(
-            total=retry_total,
-            backoff_factor=retry_backoff_factor,
-        )
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        log.debug(f"Access token is {access_token}")
-        log.debug(f"URL is {url}")
-        response = session.get(
-            f"{S3_SIGNING_ENDPOINT}?url={url}",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        response.raise_for_status()
+    log.debug(f"Access token: {access_token[:8]}...{access_token[-8:]}")
+    signed_urls = {}
+    for url in urls:
+        signed_url_in_cache = CACHE.get(url)
+        if signed_url_in_cache and signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
+            signed_urls[url] = signed_url_in_cache
+    not_signed_urls = [url for url in urls if url not in signed_urls]
+    # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds remaining,
+    # in order to give a small amount of time to do stuff with the url
+    session = requests.Session()
+    retry = urllib3.util.retry.Retry(
+        total=retry_total,
+        backoff_factor=retry_backoff_factor,
+    )
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    response = session.post(
+        f"{S3_SIGNING_ENDPOINT}sign_urls",
+        params={"urls": not_signed_urls},
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+    )
+    response.raise_for_status()
 
-        signed_url = SignedURL(**response.json())
-        if not signed_url:
-            raise ValueError(f"No signed url found in response: {response.json()}")
+    signed_url_batch = SignedURLBatch(**response.json())
+    if not signed_url_batch:
+        raise ValueError(f"No signed url batch found in response: {response.json()}")
+    for url, href in signed_url_batch.hrefs.items():
+        signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
         CACHE[url] = signed_url
-    print(f"{time.time() - t:.2f} secondes")
-    return signed_url
+        signed_urls[url] = signed_url
+    log.debug(f"Got signed urls {signed_urls} in {time.time() - t:.2f} seconds")
+
+    return signed_urls
