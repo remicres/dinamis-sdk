@@ -12,3 +12,13 @@ api = pystac_client.Client.open(
 )
 ```
 
+## Example
+
+Mosaic some XS images with [pyotb](https://pypi.org/project/pyotb/) over Camargue area
+
+```python
+import pyotb
+results = api.search(bbox=[4, 42.99, 5, 44.05], datetime=['2020-01-01', '2022-01-02'])
+imgs = [f"/vsicurl/{res.assets['src_xs'].href}" for res in results.items()]
+pyotb.Mosaic({"il": imgs, "out": "raster.tif"})
+```

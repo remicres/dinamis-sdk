@@ -426,6 +426,7 @@ def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor
         if signed_url_in_cache and signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
             signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
+    log.debug(f"Already signed URLs:\n {urls}")
     # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds remaining,
     # in order to give a small amount of time to do stuff with the url
     session = requests.Session()
