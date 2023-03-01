@@ -375,7 +375,6 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
         for k, v in mapping["assets"].items():
             url = v["href"]
             v["href"] = signed_urls[url]
-            print(f"v={v}")
             _sign_fsspec_asset_in_place(v)
 
     elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
