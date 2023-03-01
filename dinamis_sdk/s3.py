@@ -221,7 +221,7 @@ def sign_item(item: Item, copy: bool = True) -> Item:
     if copy:
         item = item.clone()
     urls = {key: asset.href for key, asset in item.assets.items()}
-    signed_urls = get_signed_urls(urls=urls)
+    signed_urls = sign_urls(urls=urls)
     for key in item.assets:
         url = urls[key]
         item.assets[key] = signed_urls[url]
@@ -243,7 +243,7 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
     """
     if copy:
         asset = asset.clone()
-    asset.href = get_signed_urls([asset.href])[asset.href]
+    asset.href = sign_urls([asset.href])[asset.href]
     _sign_asset_in_place(asset)
     return asset
 
@@ -290,7 +290,7 @@ def sign_item_collection(
     if copy:
         item_collection = item_collection.clone()
     urls = {key: asset.href for item in item_collection for key, asset in item.assets.items()}
-    signed_urls = get_signed_urls(urls=urls)
+    signed_urls = sign_urls(urls=urls)
     for item in item_collection:
         for key in item.assets:
             url = item.assets[key]
@@ -330,7 +330,7 @@ def sign_collection(collection: Collection, copy: bool = True) -> Collection:
             collection.assets = deepcopy(assets)
 
     urls = [collection.assets[key].href for key in collection.assets]
-    signed_urls = get_signed_urls(urls=urls)
+    signed_urls = sign_urls(urls=urls)
     for key in collection.assets:
         url = collection.assets[key].href
         collection.assets[key].href = signed_urls[url]
@@ -365,21 +365,22 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
     types = (STACObjectType.ITEM, STACObjectType.COLLECTION)
     if all(k in mapping for k in ["version", "templates", "refs"]):
         urls = list(mapping["templates"].values())
-        signed_urls = get_signed_urls(urls=urls)
+        signed_urls = sign_urls(urls=urls)
         for k, url in mapping["templates"].items():
             mapping["templates"][k] = signed_urls[url]
 
     elif identify_stac_object_type(cast(Dict[str, Any], mapping)) in types:
         urls = [v["href"] for v in mapping["assets"].values()]
-        signed_urls = get_signed_urls(urls=urls)
+        signed_urls = sign_urls(urls=urls)
         for k, v in mapping["assets"].items():
             url = v["href"]
             v["href"] = signed_urls[url]
+            print(f"v={v}")
             _sign_fsspec_asset_in_place(v)
 
     elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
         urls = [v["href"] for feat in mapping["features"] for v in feat.get("assets", {}).values()]
-        signed_urls = get_signed_urls(urls=urls)
+        signed_urls = sign_urls(urls=urls)
         for feature in mapping["features"]:
             for k, v in feature.get("assets", {}).items():
                 url = v["href"]
