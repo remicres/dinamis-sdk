@@ -20,7 +20,16 @@ api = pystac_client.Client.open(
 )
 ```
 
-## Example
+To process the COG files remotely with the *vsicurl* driver, the following software must be up-to-date:
+
+| Software | Minimum version |
+|----------|-----------------|
+| GDAL     | 3.4.1           |
+| QGIS     | 3.18 (Firenze)  |
+| OTB      | 8.1.1           |
+ | PyOTB    | 1.5.4           |
+
+### Example
 
 Mosaic some XS images with [pyotb](https://pypi.org/project/pyotb/) over Camargue area
 
