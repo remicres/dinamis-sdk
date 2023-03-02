@@ -27,7 +27,7 @@ flake8:
 pylint:
   extends: .static_analysis_base
   script:
-    - pip install pylint
+    - pip install pylint appdirs requests pystac pystac-client pydantic urllib3
     - pylint $PWD/dinamis_sdk
 
 codespell:
