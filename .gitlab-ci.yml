@@ -34,7 +34,7 @@ codespell:
   extends: .static_analysis_base
   script: 
     - pip install codespell
-    - codespell --skip="*.png,*.template,*.pbs,*.jpg,*git/lfs*,*venv/*,*test_data/*,.git/*"
+    - codespell --skip="*.png,*.template,*.pbs,*.jpg,*git/lfs*,*venv/*,*test_data/*,./.git/objects*"
 
 # ----------------------------------------------------- Install --------------------------------------------------------
 

@@ -1,3 +1,6 @@
+"""
+Some helpers.
+"""
 import os
 import logging
 

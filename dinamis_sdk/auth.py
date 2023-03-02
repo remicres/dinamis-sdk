@@ -50,7 +50,7 @@ class GrantMethodBase:
         :return: JWT
 
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def data_base(self) -> Dict[str, str]:
@@ -92,7 +92,7 @@ class DeviceGrant(GrantMethodBase):
         if ret.status_code == 200:
             response = DeviceGrantResponse(**ret.json())
             verif_url_comp = response.verification_uri_complete
-            log.info(f"Open the following URL in your browser to grant access:")
+            log.info("Open the following URL in your browser to grant access:")
             log.info(f"\033[92m{verif_url_comp}\033[0m")
 
             # QR code
@@ -185,7 +185,7 @@ class OAuth2Session:
             try:
                 self.jwt = self.grant.refresh_token(self.jwt)
             except ConnectionError as e:
-                log.warning("Unable to refresh token ({e}). Renewing initial authentication.")
+                log.warning(f"Unable to refresh token ({e}). Renewing initial authentication.")
                 self.jwt = self.grant.get_first_token()
         else:
             self.jwt = self.grant.get_first_token()

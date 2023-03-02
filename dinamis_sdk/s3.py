@@ -8,7 +8,6 @@ import requests
 import requests.adapters
 import time
 import urllib3.util.retry
-import warnings
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import singledispatch
@@ -17,14 +16,13 @@ from pystac import Asset, Item, ItemCollection, STACObjectType, Collection
 from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
 from pystac_client import ItemSearch
-from typing import Any, Dict, Optional, Mapping, TypeVar, cast, List
+from typing import Any, Dict, Mapping, TypeVar, cast, List
 from urllib.parse import urlparse, parse_qs
 
 from .utils import log, SIGNED_URL_TTL_MARGIN
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
-#S3_SIGNING_ENDPOINT = "http://172.17.0.1:8000/"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
@@ -225,7 +223,6 @@ def sign_item(item: Item, copy: bool = True) -> Item:
     for key in item.assets:
         url = urls[key]
         item.assets[key] = signed_urls[url]
-        _sign_asset_in_place(item.assets[key])
     return item
 
 
@@ -244,31 +241,7 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
     if copy:
         asset = asset.clone()
     asset.href = sign_urls([asset.href])[asset.href]
-    _sign_asset_in_place(asset)
     return asset
-
-
-def _sign_asset_in_place(asset: Asset) -> Asset:
-    """Sign a PySTAC asset
-
-    Args:
-        asset (Asset): The Asset to sign in place
-
-    Returns:
-        Asset: Input Asset object modified in place: the HREF is replaced
-        with a signed version.
-    """
-    #asset.href = sign(asset.href)
-    _sign_fsspec_asset_in_place(asset)
-
-
-def _sign_fsspec_asset_in_place(asset: AssetLike) -> None:
-    if isinstance(asset, Asset):
-        extra_d = asset.extra_fields
-        href = asset.href
-    else:
-        extra_d = asset
-        href = asset["href"]
 
 
 @sign.register(ItemCollection)
@@ -295,7 +268,6 @@ def sign_item_collection(
         for key in item.assets:
             url = item.assets[key]
             item.assets[key].href = signed_urls(url)
-            _sign_asset_in_place(item.assets[key])
     return item_collection
 
 
@@ -334,7 +306,6 @@ def sign_collection(collection: Collection, copy: bool = True) -> Collection:
     for key in collection.assets:
         url = collection.assets[key].href
         collection.assets[key].href = signed_urls[url]
-        _sign_asset_in_place(collection.assets[key])
     return collection
 
 
