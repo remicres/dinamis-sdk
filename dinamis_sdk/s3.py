@@ -156,7 +156,10 @@ def sign_urls(urls: List[str]) -> str:
                 signed_urls[url] = url
 
     not_signed_urls = [url for url in urls if url not in signed_urls]
-    signed_urls.update({url: signed_url.href for url, signed_url in get_signed_urls(not_signed_urls).items()})
+    signed_urls.update({
+        url: signed_url.href
+        for url, signed_url in get_signed_urls(not_signed_urls).items()
+    })
     return signed_urls
 
 
@@ -346,7 +349,6 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
         for k, v in mapping["assets"].items():
             url = v["href"]
             v["href"] = signed_urls[url]
-            _sign_fsspec_asset_in_place(v)
 
     elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
         urls = [v["href"] for feat in mapping["features"] for v in feat.get("assets", {}).values()]
@@ -355,7 +357,6 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
             for k, v in feature.get("assets", {}).items():
                 url = v["href"]
                 v["href"] = signed_urls[url]
-                _sign_fsspec_asset_in_place(v)
 
     return mapping
 
