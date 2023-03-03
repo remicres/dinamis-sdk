@@ -22,10 +22,10 @@ if not os.path.exists(cfg_pth):
 else:
     log.debug("Config path already exist in %s", cfg_pth)
 
-jwt_file = os.path.join(cfg_pth, "token") if cfg_pth else None
+jwt_file = os.path.join(cfg_pth, ".token") if cfg_pth else None
 log.debug("JWT file is %s", jwt_file)
 
-settings_file = os.path.join(cfg_pth, "settings") if cfg_pth else None
+settings_file = os.path.join(cfg_pth, ".settings") if cfg_pth else None
 log.debug("Settings file is %s", settings_file)
 
 class StorageCredentials(BaseModel):
