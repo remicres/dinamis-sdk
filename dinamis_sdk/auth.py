@@ -1,19 +1,17 @@
 """
 Module dedicated to OAuth2 client side implementations
 """
-import appdirs
 import datetime
 import io
 import json
 import os
-import qrcode
-import requests
 import time
 from abc import abstractmethod
-from pydantic import BaseModel, Field
 from typing import Dict
-
-from dinamis_sdk.utils import log
+import requests
+from pydantic import BaseModel, Field
+import qrcode
+from .utils import log, jwt_file
 
 
 class JWT(BaseModel):
@@ -47,7 +45,8 @@ class GrantMethodBase:
         """
         Provide the first used token.
 
-        :return: JWT
+        Returns:
+            JWT
 
         """
         raise NotImplementedError
@@ -75,7 +74,7 @@ class GrantMethodBase:
         data.update({"refresh_token": old_jwt.refresh_token, "grant_type": "refresh_token"})
         ret = requests.post(self.token_endpoint, headers=self.headers, data=data, timeout=10)
         if ret.status_code == 200:
-            log.debug(f"{ret.text}")
+            log.debug(ret.text)
             return JWT(**ret.json())
         raise ConnectionError("Unable to refresh token")
 
@@ -84,7 +83,14 @@ class DeviceGrant(GrantMethodBase):
     """Device grant method"""
     client_id = "gdal"
 
-    def get_first_token(self):
+    def get_first_token(self) -> JWT:
+        """
+        Get the first token
+
+        Returns:
+            JWT token
+
+        """
         device_endpoint = f"{self.base_url}/auth/device"
 
         log.debug("Getting token using device authorization grant")
@@ -93,15 +99,15 @@ class DeviceGrant(GrantMethodBase):
             response = DeviceGrantResponse(**ret.json())
             verif_url_comp = response.verification_uri_complete
             log.info("Open the following URL in your browser to grant access:")
-            log.info(f"\033[92m{verif_url_comp}\033[0m")
+            log.info("\033[92m%s\033[0m",verif_url_comp)
 
             # QR code
-            qr = qrcode.QRCode()
-            qr.add_data(verif_url_comp)
-            f = io.StringIO()
-            qr.print_ascii(out=f)
-            f.seek(0)
-            log.info(f.read())
+            qr_code = qrcode.QRCode()
+            qr_code.add_data(verif_url_comp)
+            buffer = io.StringIO()
+            qr_code.print_ascii(out=buffer)
+            buffer.seek(0)
+            log.info(buffer.read())
 
             log.info("Waiting for authentication...")
             start = time.time()
@@ -111,11 +117,16 @@ class DeviceGrant(GrantMethodBase):
                 "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
             })
             while True:
-                ret = requests.post(self.token_endpoint, headers=self.headers, data=data, timeout=10)
+                ret = requests.post(
+                    self.token_endpoint,
+                    headers=self.headers,
+                    data=data,
+                    timeout=10
+                )
                 elapsed = time.time() - start
-                log.debug(f"Elapsed: {elapsed}, status: {ret.status_code}")
+                log.debug("Elapsed: %s, status: %s", elapsed, ret.status_code)
                 if elapsed > response.expires_in:
-                    raise ConnectionError("User has not logged yet and the authentication link has expired")
+                    raise ConnectionError("Authentication link has expired.")
                 if ret.status_code != 200:
                     time.sleep(response.interval)
                 else:
@@ -133,24 +144,10 @@ class OAuth2Session:
 
         Args:
             grant_type: grant type
+
         """
         self.grant = grant_type()
         self.jwt_ttl_margin_seconds = 60
-        # Config path
-        self.jwt_file = None
-        cfg_pth = appdirs.user_config_dir(appname='dinamis_sdk_auth')
-        tgt_jwt_file = os.path.join(cfg_pth, "token")
-        if not os.path.exists(cfg_pth):
-            try:
-                os.makedirs(cfg_pth)
-                self.jwt_file = tgt_jwt_file
-                log.debug(f"Config path created in {cfg_pth}")
-            except PermissionError:
-                log.warn("Unable to create config path. Tokens won't be saved to disk.")
-        else:
-            log.debug(f"Config path is {cfg_pth}")
-            self.jwt_file = tgt_jwt_file
-        log.debug(f"JWT file is {self.jwt_file}")
         self.jwt_issuance = datetime.datetime(year=1, month=1, day=1)
         self.jwt = None
 
@@ -158,15 +155,18 @@ class OAuth2Session:
         """
         Save the JWT to disk.
 
+        Params:
+            now: date of now
+
         """
         self.jwt_issuance = now
-        if self.jwt_file:
+        if jwt_file:
             try:
-                with open(self.jwt_file, 'w', encoding='UTF-8') as fp:
-                    json.dump(self.jwt.dict(), fp)
-                log.debug(f"Token saved in {self.jwt_file}")
-            except IOError as e:
-                log.warning(f"Unable to save token ({e})")
+                with open(jwt_file, 'w', encoding='UTF-8') as file:
+                    json.dump(self.jwt.dict(), file)
+                log.debug("Token saved in %s", jwt_file)
+            except IOError as io_err:
+                log.warning("Unable to save token (%s)", io_err)
 
     def refresh_if_needed(self):
         """
@@ -175,8 +175,9 @@ class OAuth2Session:
         """
         ttl_margin_seconds = 30
         now = datetime.datetime.now()
-        access_token_ttl = (self.jwt_issuance + datetime.timedelta(seconds=self.jwt.expires_in) - now).total_seconds()
-        log.debug(f"access_token_ttl is {access_token_ttl}")
+        jwt_expires_in = datetime.timedelta(seconds=self.jwt.expires_in)
+        access_token_ttl = (self.jwt_issuance + jwt_expires_in - now).total_seconds()
+        log.debug("access_token_ttl is %s", access_token_ttl)
         if access_token_ttl >= ttl_margin_seconds:
             # Token is still valid
             return
@@ -184,25 +185,35 @@ class OAuth2Session:
             # Access token in not valid, but refresh might be
             try:
                 self.jwt = self.grant.refresh_token(self.jwt)
-            except ConnectionError as e:
-                log.warning(f"Unable to refresh token ({e}). Renewing initial authentication.")
+            except ConnectionError as con_err:
+                log.warning(
+                    "Unable to refresh token (reason: %s). Renewing initial authentication.",
+                    con_err
+                )
                 self.jwt = self.grant.get_first_token()
         else:
             self.jwt = self.grant.get_first_token()
         self.save_token(now)
 
-    def get_access_token(self):
+    def get_access_token(self) -> str:
+        """
+        Get the access token.
+
+        Returns:
+            access token
+
+        """
         if not self.jwt:
             # First JWT initialisation
-            if self.jwt_file and os.path.isfile(self.jwt_file):
-                log.debug(f"Trying to grab credentials from {self.jwt_file}")
+            if jwt_file and os.path.isfile(jwt_file):
+                log.debug("Trying to grab credentials from %s", jwt_file)
                 try:
-                    with open(self.jwt_file, encoding='UTF-8') as json_file:
+                    with open(jwt_file, encoding='UTF-8') as json_file:
                         self.jwt = self.grant.refresh_token(JWT(**json.load(json_file)))
                         if self.jwt:
-                            log.debug(f"Credentials from {self.jwt_file} still valid")
-                except Exception as e:
-                    log.warn(f"Warning: unable to use last token from file {self.jwt_file} ({e})")
+                            log.debug("Credentials from %s still valid", jwt_file)
+                except Exception as error:
+                    log.warning("Warning: can't use token from file %s (%s)", jwt_file, error)
             if not self.jwt:
                 # if JWT is still None, we use the grant method
                 self.jwt = self.grant.get_first_token()
@@ -224,5 +235,12 @@ get_access_token = _get_access_token
 
 
 def set_access_token_fn(func):
+    """
+    Set a custom access token accessor
+
+    Params:
+        func: access token accessor
+
+    """
     global get_access_token
     get_access_token = func

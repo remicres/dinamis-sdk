@@ -8,6 +8,16 @@ Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 pip install https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/archive/main/dinamis-sdk-main.zip
 ```
 
+If you have credentials, you may provide it to the library by using the included configuration CLI:
+
+```commandline
+dinamis-sdk-cli 
+```
+
+> **Warning**
+> Never enter credentials on insecure platforms (e.g. online notebooks, etc).
+> Use the device code flow with the QR code instead.
+
 ## Quickstart
 
 ```python

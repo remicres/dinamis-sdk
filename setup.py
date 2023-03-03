@@ -13,5 +13,8 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     packages=find_packages(),
+    entry_points={
+        'console_scripts': ['dinamis-sdk-cli=dinamis_sdk.cli:main', ]
+    },
 )
 

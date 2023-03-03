@@ -19,7 +19,7 @@ from pystac_client import ItemSearch
 from typing import Any, Dict, Mapping, TypeVar, cast, List
 from urllib.parse import urlparse, parse_qs
 
-from .utils import log, SIGNED_URL_TTL_MARGIN
+from .utils import log, SIGNED_URL_TTL_MARGIN, credentials
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
@@ -40,6 +40,7 @@ class URLBase(BaseModel):
     expiry: datetime = Field(alias="expiry")
 
     class Config:
+        """Config for URLBase model"""
         json_encoders = {datetime: datetime_to_str}
         allow_population_by_field_name = True
 
@@ -121,8 +122,7 @@ def sign_string(url: str, copy: bool = True) -> str:
     """
     if is_vrt_string(url):
         return sign_vrt_string(url)
-    else:
-        return sign_urls(urls=[url])[url]
+    return sign_urls(urls=[url])[url]
 
 
 def sign_urls(urls: List[str]) -> str:
@@ -270,7 +270,7 @@ def sign_item_collection(
     for item in item_collection:
         for key in item.assets:
             url = item.assets[key]
-            item.assets[key].href = signed_urls(url)
+            item.assets[key].href = signed_urls[url]
     return item_collection
 
 
@@ -364,7 +364,11 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
 sign_reference_file = sign_mapping
 
 
-def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor: float = 0.8) -> Dict[str, SignedURL]:
+def get_signed_urls(
+        urls: List[str],
+        retry_total: int = 10,
+        retry_backoff_factor: float = 0.8
+) -> Dict[str, SignedURL]:
     """
     Get multiple signed URLs.
 
@@ -387,18 +391,30 @@ def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor
     Returns:
         SignedURL: the signed URL
     """
-    log.debug(f"Get signed URLs for {urls}")
+    log.debug("Get signed URLs for %s", urls)
     t = time.time()
-    from .auth import get_access_token
-    access_token = get_access_token()
-    log.debug(f"Access token: {access_token[:8]}...{access_token[-8:]}")
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    if credentials:
+        headers.update({
+            "dinamis-access-key": credentials.access_key,
+            "dinamis-secret-key": credentials.secret_key
+        })
+        log.debug("Using credentials (access/secret keys)")
+    else:
+        from .auth import get_access_token
+        access_token = get_access_token()
+        headers.update({"Authorization": f"Bearer {access_token}"})
+        log.debug("Access token: %s...%s", access_token[:8], access_token[-8:])
     signed_urls = {}
     for url in urls:
         signed_url_in_cache = CACHE.get(url)
         if signed_url_in_cache and signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
             signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
-    log.debug(f"Already signed URLs:\n {urls}")
+    log.debug("Already signed URLs:\n %s", signed_urls)
     # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds remaining,
     # in order to give a small amount of time to do stuff with the url
     session = requests.Session()
@@ -412,11 +428,7 @@ def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor
     response = session.post(
         f"{S3_SIGNING_ENDPOINT}sign_urls",
         params={"urls": not_signed_urls},
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        },
+        headers=headers
     )
     response.raise_for_status()
 
@@ -427,6 +439,6 @@ def get_signed_urls(urls: List[str], retry_total: int = 10, retry_backoff_factor
         signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
         CACHE[url] = signed_url
         signed_urls[url] = signed_url
-    log.debug(f"Got signed urls {signed_urls} in {time.time() - t:.2f} seconds")
+    log.debug("Got signed urls %s in %s seconds", signed_urls, f"{time.time() - t:.2f}")
 
     return signed_urls
