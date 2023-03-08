@@ -1,8 +1,8 @@
 import json
-import os
 from getpass import getpass
 
 from .utils import settings_file, StorageCredentials
+
 
 def main():
     print("Visit \033[92mhttps://minio-dinamis.apps.okd.crocc.meso.umontpellier.fr/access-keys\033[0m"

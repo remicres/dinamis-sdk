@@ -28,14 +28,19 @@ log.debug("JWT file is %s", jwt_file)
 settings_file = os.path.join(cfg_pth, ".settings") if cfg_pth else None
 log.debug("Settings file is %s", settings_file)
 
+
 class StorageCredentials(BaseModel):
+    """
+    Credentials model.
+    """
     access_key: str
     secret_key: str
+
 
 credentials = None
 if settings_file and os.path.isfile(settings_file):
     try:
         with open(settings_file, encoding='UTF-8') as json_file:
             credentials = StorageCredentials(**json.load(json_file))
-    except FileNotFoundError as file_err:
+    except FileNotFoundError:
         logging.debug("Setting file %s does not exist", settings_file)
