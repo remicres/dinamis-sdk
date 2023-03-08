@@ -1,5 +1,6 @@
 # mkdocs.yml
 theme:
+  logo: https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png
   name: "material"
   icon:
     repo: fontawesome/brands/gitlab
