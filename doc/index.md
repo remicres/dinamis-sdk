@@ -2,6 +2,10 @@
 
 Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 
+<p align="center">
+<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png">
+</p>
+
 ## Installation
 
 ```commandline
