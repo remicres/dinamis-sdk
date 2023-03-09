@@ -79,3 +79,7 @@ The API reference can be found [here](https://s3-signing-dinamis.apps.okd.crocc.
 ## Terms of service 
 
 [Link](https://ids-dinamis.data-terra.org/web/guest/37)
+
+## Contact
+
+Rémi Cresson at INRAE dot fr
