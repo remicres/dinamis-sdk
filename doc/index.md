@@ -3,12 +3,22 @@
 Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 
 
-
 <div align="center">
-<div id="qr" style="display:inline-block; align: center; vertical-align: middle; height:3cm;" >
-<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1.5cm;margin:1.5cm">
-<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.75cm;margin:1.25cm">
+<div id="qr" style="display:inline-block; margin: auto; align: center; vertical-align: middle; height:3cm;" >
+<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1.5cm; padding:5px">
+<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.75cm; padding: 5px">
 </div>
+<br>
+<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/releases">
+<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/badges/release.svg">
+</a>
+<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/commits/main">
+<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/badges/main/pipeline.svg">
+</a>
+<a href="LICENSE">
+<img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
+</a>
+
 </div>
 
 !!! Info
