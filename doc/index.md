@@ -1,6 +1,6 @@
-# DINAMIS-SDK
+# Dinamis-SDK
 
-Ease the access to Very High Spatial Resolution imagery from DINAMIS.
+Ease the access to Very High Spatial Resolution imagery from Dinamis.
 
 
 <div align="center">
@@ -60,7 +60,7 @@ applied directly on a particular `pystac.item`, `pystac.collection`,
 The API reference can be found 
 [here](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs).
 
-## Processing remote COGs locally
+### Processing remote COGs locally
 
 The following demonstrates how to process remote COGs locally with your 
 favorite tool.
@@ -76,7 +76,7 @@ favorite tool.
     | OTB      | 8.1.1           |
     | PyOTB    | 1.5.4           |
 
-Lets mosaic some XS images with [pyotb](https://pypi.org/project/pyotb/) over 
+Lets **mosaic some XS images** with [pyotb](https://pypi.org/project/pyotb/) over 
 Camargue area:
 
 ```python
@@ -105,9 +105,9 @@ pyotb.Mosaic({"il": vsi_urls, "out": "raster.tif"})
             ...
     ```
 
-## Opening remote COGs in QGIS
+### Opening remote COGs in QGIS
 
-From the set or results `res`, we just print the *src_xs* and *src_pan* assets 
+From the set or results `res`, we can print the *src_xs* and *src_pan* assets 
 URLs:
 
 ```python
@@ -124,15 +124,37 @@ To open one COG in QGIS, follow these steps:
 - In *Source type*, select *Protocol: HTTP(S), cloud, etc*
 - Paste the copied link in the *url* field
 
+You can then process the remote COGs as any raster with your favorite tool 
+from QGIS.
+
 !!! Warning
 
     QGIS must be at least **3.18 (Firenze)** to open remote COG files provided 
     by Dinamis-SDK prototype.
 
+## Additional resources
+
+### API
+
+- [STAC API swagger UI](https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr/api.html)
+- [URL signing API swagger UI](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs)
+
+### Documentation
+
+- [PySTAC documentation](https://pystac.readthedocs.io/en/stable/api/pystac.html)
+- [PySTAC-Client documentation](https://pystac-client.readthedocs.io/en/stable/)
+- More information about the [STAC specification](https://stacspec.org/en/about/stac-spec/)
+
+## Contribute
+
+You can open issues or merge requests at 
+[INRAE's gitlab](https://gitlab.irstea.fr/dinamis/dinamis-sdk).
 
 ## Terms of service 
 
-[Link](https://ids-dinamis.data-terra.org/web/guest/37)
+Please read carefully the 
+[terms of service](https://ids-dinamis.data-terra.org/web/guest/37) related to 
+the involved products (Spot-6/7, France Mainland, Direct Receiving Station).
 
 ## Contact
 
