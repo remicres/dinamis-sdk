@@ -50,7 +50,7 @@ markdown_extensions:
   - pymdownx.superfences
 
 # rest of the navigation..
-site_name: DINAMIS-SDK
+site_name: Dinamis-SDK
 repo_url: https://gitlab.irstea.fr/dinamis/dinamis-sdk
 repo_name: dinamis-sdk
 docs_dir: doc/
