@@ -1,46 +1,43 @@
-"""
-Some helpers.
-"""
+"""Some helpers."""
 import os
 import logging
-import appdirs
 import json
-from pydantic import BaseModel
+import appdirs
+from pydantic import BaseModel  # pylint: disable = no-name-in-module
 
 SIGNED_URL_TTL_MARGIN = 1800  # 30 minutes
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
 log = logging.getLogger("dinamis_sdk")
 
-cfg_pth = appdirs.user_config_dir(appname='dinamis_sdk_auth')
-if not os.path.exists(cfg_pth):
+CFG_PTH = appdirs.user_config_dir(appname='dinamis_sdk_auth')
+if not os.path.exists(CFG_PTH):
     try:
-        os.makedirs(cfg_pth)
-        log.debug("Config path created in %s", cfg_pth)
+        os.makedirs(CFG_PTH)
+        log.debug("Config path created in %s", CFG_PTH)
     except PermissionError:
         log.warning("Unable to create config path")
-        cfg_pth = None
+        CFG_PTH = None
 else:
-    log.debug("Config path already exist in %s", cfg_pth)
+    log.debug("Config path already exist in %s", CFG_PTH)
 
-jwt_file = os.path.join(cfg_pth, ".token") if cfg_pth else None
-log.debug("JWT file is %s", jwt_file)
+JWT_FILE = os.path.join(CFG_PTH, ".token") if CFG_PTH else None
+log.debug("JWT file is %s", JWT_FILE)
 
-settings_file = os.path.join(cfg_pth, ".settings") if cfg_pth else None
+settings_file = os.path.join(CFG_PTH, ".settings") if CFG_PTH else None
 log.debug("Settings file is %s", settings_file)
 
 
-class StorageCredentials(BaseModel):
-    """
-    Credentials model.
-    """
+class StorageCredentials(BaseModel):  # pylint: disable = R0903
+    """Credentials model."""
+
     access_key: str
     secret_key: str
 
 
-credentials = None
+CREDENTIALS = None
 if settings_file and os.path.isfile(settings_file):
     try:
         with open(settings_file, encoding='UTF-8') as json_file:
-            credentials = StorageCredentials(**json.load(json_file))
+            CREDENTIALS = StorageCredentials(**json.load(json_file))
     except FileNotFoundError:
         logging.debug("Setting file %s does not exist", settings_file)

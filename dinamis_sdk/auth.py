@@ -1,6 +1,4 @@
-"""
-Module dedicated to OAuth2 client side implementations
-"""
+"""Module dedicated to OAuth2 device flow."""
 import datetime
 import io
 import json
@@ -9,13 +7,14 @@ import time
 from abc import abstractmethod
 from typing import Dict
 import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
 import qrcode
-from .utils import log, jwt_file
+from .utils import log, JWT_FILE
 
 
-class JWT(BaseModel):
-    """JWT model"""
+class JWT(BaseModel):  # pylint: disable = R0903
+    """JWT model."""
+
     access_token: str = Field(alias="access_token")
     expires_in: int = Field(alias="expires_in")
     refresh_token: str = Field(alias="refresh_token")
@@ -23,8 +22,9 @@ class JWT(BaseModel):
     token_type: str = Field(alias="token_type")
 
 
-class DeviceGrantResponse(BaseModel):
-    """Device grant login response model"""
+class DeviceGrantResponse(BaseModel):  # pylint: disable = R0903
+    """Device grant login response model."""
+
     verification_uri_complete: str = Field(alias="verification_uri_complete")
     device_code: str = Field(alias="device_code")
     expires_in: int = Field(alias="expires_in")
@@ -32,11 +32,16 @@ class DeviceGrantResponse(BaseModel):
 
 
 class GrantMethodBase:
-    """Base class for grant methods"""
-    headers: Dict[str, str] = {"Content-Type": "application/x-www-form-urlencoded"}
-    keycloak_server_url = "https://keycloak-dinamis.apps.okd.crocc.meso.umontpellier.fr/auth"
+    """Base class for grant methods."""
+
+    headers: Dict[str, str] = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    keycloak_server_url = "https://keycloak-dinamis.apps.okd.crocc.meso." \
+                          "umontpellier.fr/auth"
     keycloak_realm = "dinamis"
-    base_url = f"{keycloak_server_url}/realms/{keycloak_realm}/protocol/openid-connect"
+    base_url = f"{keycloak_server_url}/realms/{keycloak_realm}/" \
+               "protocol/openid-connect"
     token_endpoint = f"{base_url}/token"
     client_id: str
 
@@ -46,16 +51,14 @@ class GrantMethodBase:
         Provide the first used token.
 
         Returns:
-            JWT
+            Token
 
         """
         raise NotImplementedError
 
     @property
     def data_base(self) -> Dict[str, str]:
-        """
-        Base payload.
-        """
+        """Base payload."""
         return {
             "client_id": self.client_id,
             "scope": "offline_access"
@@ -65,14 +68,26 @@ class GrantMethodBase:
         """
         Refresh the token.
 
-        :return: JWT
+        Args:
+            old_jwt: Old token
+
+        Returns:
+            New token
 
         """
         log.debug("Refreshing token")
         assert old_jwt, "JWT is empty"
         data = self.data_base.copy()
-        data.update({"refresh_token": old_jwt.refresh_token, "grant_type": "refresh_token"})
-        ret = requests.post(self.token_endpoint, headers=self.headers, data=data, timeout=10)
+        data.update({
+            "refresh_token": old_jwt.refresh_token,
+            "grant_type": "refresh_token"
+        })
+        ret = requests.post(
+            self.token_endpoint,
+            headers=self.headers,
+            data=data,
+            timeout=10
+        )
         if ret.status_code == 200:
             log.debug(ret.text)
             return JWT(**ret.json())
@@ -80,12 +95,13 @@ class GrantMethodBase:
 
 
 class DeviceGrant(GrantMethodBase):
-    """Device grant method"""
+    """Device grant method."""
+
     client_id = "gdal"
 
     def get_first_token(self) -> JWT:
         """
-        Get the first token
+        Get the first token.
 
         Returns:
             JWT token
@@ -94,7 +110,12 @@ class DeviceGrant(GrantMethodBase):
         device_endpoint = f"{self.base_url}/auth/device"
 
         log.debug("Getting token using device authorization grant")
-        ret = requests.post(device_endpoint, headers=self.headers, data=self.data_base, timeout=10)
+        ret = requests.post(
+            device_endpoint,
+            headers=self.headers,
+            data=self.data_base,
+            timeout=10
+        )
         if ret.status_code == 200:
             response = DeviceGrantResponse(**ret.json())
             verif_url_comp = response.verification_uri_complete
@@ -135,12 +156,11 @@ class DeviceGrant(GrantMethodBase):
 
 
 class OAuth2Session:
-    """
-    Class to start an OAuth2 session
-    """
+    """Class to start an OAuth2 session."""
 
     def __init__(self, grant_type: GrantMethodBase = DeviceGrant):
         """
+        Initialize.
 
         Args:
             grant_type: grant type
@@ -155,39 +175,38 @@ class OAuth2Session:
         """
         Save the JWT to disk.
 
-        Params:
-            now: date of now
+        Args:
+            now: current date
 
         """
         self.jwt_issuance = now
-        if jwt_file:
+        if JWT_FILE:
             try:
-                with open(jwt_file, 'w', encoding='UTF-8') as file:
+                with open(JWT_FILE, 'w', encoding='UTF-8') as file:
                     json.dump(self.jwt.dict(), file)
-                log.debug("Token saved in %s", jwt_file)
+                log.debug("Token saved in %s", JWT_FILE)
             except IOError as io_err:
                 log.warning("Unable to save token (%s)", io_err)
 
     def refresh_if_needed(self):
-        """
-        Refresh the token if ttl is too short.
-
-        """
+        """Refresh the token if ttl is too short."""
         ttl_margin_seconds = 30
         now = datetime.datetime.now()
         jwt_expires_in = datetime.timedelta(seconds=self.jwt.expires_in)
-        access_token_ttl = (self.jwt_issuance + jwt_expires_in - now).total_seconds()
-        log.debug("access_token_ttl is %s", access_token_ttl)
-        if access_token_ttl >= ttl_margin_seconds:
+        access_token_ttl = self.jwt_issuance + jwt_expires_in - now
+        access_token_ttl_seconds = access_token_ttl.total_seconds()
+        log.debug("access_token_ttl is %s", access_token_ttl_seconds)
+        if access_token_ttl_seconds >= ttl_margin_seconds:
             # Token is still valid
             return
-        if access_token_ttl < ttl_margin_seconds:
+        if access_token_ttl_seconds < ttl_margin_seconds:
             # Access token in not valid, but refresh might be
             try:
                 self.jwt = self.grant.refresh_token(self.jwt)
             except ConnectionError as con_err:
                 log.warning(
-                    "Unable to refresh token (reason: %s). Renewing initial authentication.",
+                    "Unable to refresh token (reason: %s). "
+                    "Renewing initial authentication.",
                     con_err
                 )
                 self.jwt = self.grant.get_first_token()
@@ -205,15 +224,23 @@ class OAuth2Session:
         """
         if not self.jwt:
             # First JWT initialisation
-            if jwt_file and os.path.isfile(jwt_file):
-                log.debug("Trying to grab credentials from %s", jwt_file)
+            if JWT_FILE and os.path.isfile(JWT_FILE):
+                log.debug("Trying to grab credentials from %s", JWT_FILE)
                 try:
-                    with open(jwt_file, encoding='UTF-8') as json_file:
-                        self.jwt = self.grant.refresh_token(JWT(**json.load(json_file)))
+                    with open(JWT_FILE, encoding='UTF-8') as json_file:
+                        self.jwt = self.grant.refresh_token(
+                            JWT(**json.load(json_file))
+                        )
                         if self.jwt:
-                            log.debug("Credentials from %s still valid", jwt_file)
+                            log.debug(
+                                "Credentials from %s still valid", JWT_FILE
+                            )
                 except Exception as error:
-                    log.warning("Warning: can't use token from file %s (%s)", jwt_file, error)
+                    log.warning(
+                        "Warning: can't use token from file %s (%s)",
+                        JWT_FILE,
+                        error
+                    )
             if not self.jwt:
                 # if JWT is still None, we use the grant method
                 self.jwt = self.grant.get_first_token()
@@ -236,9 +263,9 @@ get_access_token = _get_access_token
 
 def set_access_token_fn(func):
     """
-    Set a custom access token accessor
+    Set a custom access token accessor.
 
-    Params:
+    Args:
         func: access token accessor
 
     """

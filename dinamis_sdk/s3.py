@@ -1,28 +1,33 @@
 """
-Revamp of Microsoft Planetary Computer SAS, using S3 and custom URL signing endpoint instead
+S3 Module.
+
+Revamp of Microsoft Planetary Computer SAS, using S3 and custom URL signing
+endpoint instead.
+
 """
 import collections.abc
-import pystac_client
 import re
-import requests
-import requests.adapters
 import time
-import urllib3.util.retry
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import singledispatch
-from pydantic import BaseModel, Field
+from typing import Any, Dict, Mapping, TypeVar, cast, List
+from urllib.parse import urlparse, parse_qs
+import urllib3.util.retry
+import requests
+import requests.adapters
+from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
 from pystac import Asset, Item, ItemCollection, STACObjectType, Collection
 from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
+import pystac_client
 from pystac_client import ItemSearch
-from typing import Any, Dict, Mapping, TypeVar, cast, List
-from urllib.parse import urlparse, parse_qs
 
-from .utils import log, SIGNED_URL_TTL_MARGIN, credentials
+from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
-S3_SIGNING_ENDPOINT = "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
+S3_SIGNING_ENDPOINT = \
+    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
@@ -34,28 +39,31 @@ asset_xpr = re.compile(
 )
 
 
-class URLBase(BaseModel):
+class URLBase(BaseModel):  # pylint: disable = R0903
     """Base model for responses."""
 
     expiry: datetime = Field(alias="expiry")
 
-    class Config:
-        """Config for URLBase model"""
+    class Config:  # pylint: disable = R0903
+        """Config for URLBase model."""
+
         json_encoders = {datetime: datetime_to_str}
         allow_population_by_field_name = True
 
 
-class SignedURL(URLBase):
-    """Signed URL response"""
+class SignedURL(URLBase):  # pylint: disable = R0903
+    """Signed URL response."""
+
     href: str = Field(alias="href")
 
     def ttl(self) -> float:
-        """Number of seconds the token is still valid for"""
+        """Return the number of seconds the token is still valid for."""
         return (self.expiry - datetime.now(timezone.utc)).total_seconds()
 
 
-class SignedURLBatch(URLBase):
-    """Signed URLs (batch of URLs) response"""
+class SignedURLBatch(URLBase):  # pylint: disable = R0903
+    """Signed URLs (batch of URLs) response."""
+
     hrefs: dict = Field(alias="hrefs")
 
 
@@ -66,16 +74,19 @@ CACHE: Dict[str, SignedURL] = {}
 
 @singledispatch
 def sign(obj: Any, copy: bool = True) -> Any:
-    """Sign the relevant URLs belonging to any supported object with a
-    S3 Token, which allows for read access.
+    """Sign the relevant URL with a S3 token allowing read access.
 
+    All URLs belonging to supported objects are modified in-place, or returned
+    by the function, depending on `copy`.
     Args:
         obj (Any): The object to sign. Must be one of:
-            str (URL), Asset, Item, ItemCollection, or ItemSearch, or a mapping.
+            str (URL), Asset, Item, ItemCollection, or ItemSearch, or a
+            mapping.
         copy (bool): Whether to sign the object in place, or make a copy.
             Has no effect for immutable objects like strings.
     Returns:
         Any: A copy of the object where all relevant URLs have been signed
+
     """
     raise TypeError(
         "Invalid type, must be one of: str, Asset, Item, ItemCollection, "
@@ -87,38 +98,40 @@ def sign_inplace(obj: Any) -> Any:
     """
     Sign the object in place.
 
-    See :func:`planetary_computer.sign` for more.
+    See :func:`dinamis_sdk.sign` for more.
+
     """
     return sign(obj, copy=False)
 
 
-def is_vrt_string(s: str) -> bool:
-    """
-    Check whether a string looks like a VRT
-    """
-    return s.strip().startswith("<VRTDataset") and s.strip().endswith("</VRTDataset>")
+def is_vrt_string(string: str) -> bool:
+    """Check whether a string looks like a VRT."""
+    return string.strip().startswith("<VRTDataset") and \
+        string.strip().endswith("</VRTDataset>")
 
 
 @sign.register(str)
 def sign_string(url: str, copy: bool = True) -> str:
-    """Sign a URL or VRT-like string containing URLs with a S3 Token
+    """Sign a URL or VRT-like string containing URLs with a S3 Token.
 
     Signing with a S3 token allows read access to files in blob storage.
 
     Args:
         url (str): The HREF of the asset as a URL or a GDAL VRT
 
-            Single URLs can be found on a STAC Item's Asset ``href`` value. Only URLs to
-            assets in S3 Storage are signed, other URLs are returned unmodified.
+            Single URLs can be found on a STAC Item's Asset ``href`` value.
+            Only URLs to assets in S3 Storage are signed, other URLs are
+            returned unmodified.
 
-            GDAL VRTs can combine many data sources into a single mosaic. A VRT can be
-            built quickly from the GDAL STACIT driver
+            GDAL VRTs can combine many data sources into a single mosaic.
+            A VRT can be  built quickly from the GDAL STACIT driver
             https://gdal.org/drivers/raster/stacit.html. Each URL to S3 Storage
             within the VRT is signed.
         copy (bool): No effect.
 
     Returns:
         str: The signed HREF or VRT
+
     """
     if is_vrt_string(url):
         return sign_vrt_string(url)
@@ -126,18 +139,20 @@ def sign_string(url: str, copy: bool = True) -> str:
 
 
 def sign_urls(urls: List[str]) -> str:
-    """Sign URLs with a S3 Token
+    """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.
 
     Args:
         urls: List of HREF to sign
 
-            Single URLs can be found on a STAC Item's Asset ``href`` value. Only URLs to
-            assets in S3 Storage are signed, other URLs are returned unmodified.
+            Single URLs can be found on a STAC Item's Asset ``href`` value.
+            Only URLs to assets in S3 Storage are signed, other URLs are
+            returned unmodified.
 
     Returns:
         dict of signed HREF: key = original URL, value = signed URL
+
     """
     signed_urls = {}
     for url in urls:
@@ -151,7 +166,11 @@ def sign_urls(urls: List[str]) -> str:
         #     return url
         else:
             parsed_qs = parse_qs(parsed_url.query)
-            if set(parsed_qs) & {"X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-Credential"}:
+            if set(parsed_qs) & {
+                "X-Amz-Security-Token",
+                "X-Amz-Signature",
+                "X-Amz-Credential"
+            }:
                 #  looks like we've already signed it
                 signed_urls[url] = url
 
@@ -163,22 +182,22 @@ def sign_urls(urls: List[str]) -> str:
     return signed_urls
 
 
-def _repl_vrt(m: re.Match) -> str:
+def _repl_vrt(match: re.Match) -> str:
     # replace all blob-storages URLs with a signed version.
-    url = m.string[slice(*m.span())]
+    url = match.string[slice(*match.span())]
     return sign_urls(url)[url]
 
 
-def sign_vrt_string(vrt: str, copy: bool = True) -> str:
-    """Sign a VRT-like string containing URLs from the storage
+def sign_vrt_string(vrt: str, copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
+    """Sign a VRT-like string containing URLs from the storage.
 
     Signing URLs allows read access to files in storage.
 
     Args:
         vrt (str): The GDAL VRT
 
-            GDAL VRTs can combine many data sources into a single mosaic. A VRT can be
-            built quickly from the GDAL STACIT driver
+            GDAL VRTs can combine many data sources into a single mosaic. A VRT
+            can be built quickly from the GDAL STACIT driver
             https://gdal.org/drivers/raster/stacit.html. Each URL to S3 Storage
             within the VRT is signed.
         copy (bool): No effect.
@@ -186,28 +205,13 @@ def sign_vrt_string(vrt: str, copy: bool = True) -> str:
     Returns:
         str: The signed VRT
 
-    Examples
-    --------
-    >>> from osgeo import gdal
-    >>> from pathlib import Path
-    >>> search = (
-    ...     "STACIT:\"https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr/search?"
-    ...     "collections=spot-6-7-drs&bbox=0,40,9,42"
-    ...     "&datetime=2019-01-01T00:00:00Z%2F..\":asset=image"
-    ... )
-    >>> gdal.Translate("out.vrt", search)
-    >>> signed_vrt = dinamis_sdk.sign(Path("out.vrt").read_text())
-    >>> print(signed_vrt)
-    <VRTDataset rasterXSize="161196" rasterYSize="25023">
-    ...
-    </VRTDataset>
     """
     return asset_xpr.sub(_repl_vrt, vrt)
 
 
 @sign.register(Item)
 def sign_item(item: Item, copy: bool = True) -> Item:
-    """Sign all assets within a PySTAC item
+    """Sign all assets within a PySTAC item.
 
     Args:
         item (Item): The Item whose assets that will be signed
@@ -218,6 +222,7 @@ def sign_item(item: Item, copy: bool = True) -> Item:
         been replaced with a signed version. In addition, an "expiry"
         property is added to the Item properties indicating the earliest
         expiry time for any assets that were signed.
+
     """
     if copy:
         item = item.clone()
@@ -231,7 +236,7 @@ def sign_item(item: Item, copy: bool = True) -> Item:
 
 @sign.register(Asset)
 def sign_asset(asset: Asset, copy: bool = True) -> Asset:
-    """Sign a PySTAC asset
+    """Sign a PySTAC asset.
 
     Args:
         asset (Asset): The Asset to sign
@@ -240,6 +245,7 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
     Returns:
         Asset: An asset where the HREF is replaced with a
         signed version.
+
     """
     if copy:
         asset = asset.clone()
@@ -251,21 +257,28 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
 def sign_item_collection(
         item_collection: ItemCollection, copy: bool = True
 ) -> ItemCollection:
-    """Sign a PySTAC item collection
+    """Sign a PySTAC item collection.
 
     Args:
-        item_collection (ItemCollection): The ItemCollection whose assets will be signed
-        copy (bool): Whether to copy (clone) the ItemCollection or mutate it inplace.
+        item_collection (ItemCollection): The ItemCollection whose assets will
+            be signed
+        copy (bool): Whether to copy (clone) the ItemCollection or mutate it
+            inplace.
 
     Returns:
         ItemCollection: An ItemCollection where all assets'
-        HREFs for each item have been replaced with a signed version. In addition,
-        a "expiry" property is added to the Item properties indicating the
-        earliest expiry time for any assets that were signed.
+        HREFs for each item have been replaced with a signed version. In
+        addition, an "expiry" property is added to the Item properties
+        indicating the earliest expiry time for any assets that were signed.
+
     """
     if copy:
         item_collection = item_collection.clone()
-    urls = {key: asset.href for item in item_collection for key, asset in item.assets.items()}
+    urls = {
+        key: asset.href
+        for item in item_collection
+        for key, asset in item.assets.items()
+    }
     signed_urls = sign_urls(urls=urls)
     for item in item_collection:
         for key in item.assets:
@@ -276,17 +289,20 @@ def sign_item_collection(
 
 @sign.register(ItemSearch)
 def _search_and_sign(search: ItemSearch, copy: bool = True) -> ItemCollection:
-    """Perform a PySTAC Client search, and sign the resulting item collection
+    """Perform a PySTAC Client search, and sign the resulting item collection.
 
     Args:
-        search (ItemSearch): The ItemSearch whose resulting item assets will be signed
+        search (ItemSearch): The ItemSearch whose resulting item assets will
+            be signed
         copy (bool): No effect.
 
     Returns:
-        ItemCollection: The resulting ItemCollection of the search where all assets'
-        HREFs for each item have been replaced with a signed version. In addition,
-        a "expiry" property is added to the Item properties indicating the
-        earliest expiry time for any assets that were signed.
+        ItemCollection: The resulting ItemCollection of the search where all
+            assets' HREFs for each item have been replaced with a signed
+            version. In addition, a "expiry" property is added to the Item
+            properties indicating the earliest expiry time for any assets that
+            were signed.
+
     """
     if pystac_client.__version__ >= "0.5.0":
         items = search.item_collection()
@@ -297,6 +313,17 @@ def _search_and_sign(search: ItemSearch, copy: bool = True) -> ItemCollection:
 
 @sign.register(Collection)
 def sign_collection(collection: Collection, copy: bool = True) -> Collection:
+    """
+    Sign a collection.
+
+    Args:
+        collection: STAC Collection
+        copy: copy or not the input
+
+    Returns:
+        signed (Collection): the STAC collection, now with signed URLs.
+
+    """
     if copy:
         # https://github.com/stac-utils/pystac/pull/834 fixed asset dropping
         assets = collection.assets
@@ -332,31 +359,37 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
         copy: Whether to copy (clone) the mapping or mutate it inplace.
     Returns:
         signed (Mapping): The dictionary, now with signed URLs.
+
     """
     if copy:
         mapping = deepcopy(mapping)
 
     types = (STACObjectType.ITEM, STACObjectType.COLLECTION)
-    if all(k in mapping for k in ["version", "templates", "refs"]):
+    if all(key in mapping for key in ["version", "templates", "refs"]):
         urls = list(mapping["templates"].values())
         signed_urls = sign_urls(urls=urls)
-        for k, url in mapping["templates"].items():
-            mapping["templates"][k] = signed_urls[url]
+        for key, url in mapping["templates"].items():
+            mapping["templates"][key] = signed_urls[url]
 
     elif identify_stac_object_type(cast(Dict[str, Any], mapping)) in types:
-        urls = [v["href"] for v in mapping["assets"].values()]
+        urls = [val["href"] for val in mapping["assets"].values()]
         signed_urls = sign_urls(urls=urls)
-        for k, v in mapping["assets"].items():
-            url = v["href"]
-            v["href"] = signed_urls[url]
+        for val in mapping["assets"].values():
+            url = val["href"]
+            val["href"] = signed_urls[url]
 
-    elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
-        urls = [v["href"] for feat in mapping["features"] for v in feat.get("assets", {}).values()]
+    elif mapping.get("type") == "FeatureCollection" and \
+            mapping.get("features"):
+        urls = [
+            val["href"]
+            for feat in mapping["features"]
+            for val in feat.get("assets", {}).values()
+        ]
         signed_urls = sign_urls(urls=urls)
         for feature in mapping["features"]:
-            for k, v in feature.get("assets", {}).items():
-                url = v["href"]
-                v["href"] = signed_urls[url]
+            for val in feature.get("assets", {}).values():
+                url = val["href"]
+                val["href"] = signed_urls[url]
 
     return mapping
 
@@ -377,46 +410,50 @@ def get_signed_urls(
 
     Args:
         urls: urls
-        retry_total (int): The number of allowable retry attempts for REST API calls.
-            Use retry_total=0 to disable retries. A backoff factor to apply between
-            attempts.
-        retry_backoff_factor (float): A backoff factor to apply between attempts
-        after the second try (most errors are resolved immediately by a second
-        try without a delay). Retry policy will sleep for:
-
-        ``{backoff factor} * (2 ** ({number of total retries} - 1))`` seconds.
-        If the backoff_factor is 0.1, then the retry will sleep for
-        [0.0s, 0.2s, 0.4s, ...] between retries. The default value is 0.8.
+        retry_total (int): The number of allowable retry attempts for REST API
+            calls. Use retry_total=0 to disable retries. A backoff factor to
+            apply between attempts.
+        retry_backoff_factor (float): A backoff factor to apply between
+            attempts after the second try (most errors are resolved immediately
+            by a second try without a delay). Retry policy will sleep for:
+            ``{backoff factor} * (2 ** ({number of total retries} - 1))``
+            seconds. If the backoff_factor is 0.1, then the retry will sleep
+            for [0.0s, 0.2s, 0.4s, ...] between retries. The default value is
+            0.8.
 
     Returns:
         SignedURL: the signed URL
     """
     log.debug("Get signed URLs for %s", urls)
-    t = time.time()
+    start_time = time.time()
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
-    if credentials:
+    if CREDENTIALS:
         headers.update({
-            "dinamis-access-key": credentials.access_key,
-            "dinamis-secret-key": credentials.secret_key
+            "dinamis-access-key": CREDENTIALS.access_key,
+            "dinamis-secret-key": CREDENTIALS.secret_key
         })
         log.debug("Using credentials (access/secret keys)")
     else:
         from .auth import get_access_token
         access_token = get_access_token()
         headers.update({"Authorization": f"Bearer {access_token}"})
-        log.debug("Access token: %s...%s", access_token[:8], access_token[-8:])
+        log.debug(
+            "Access token: %s...%s", access_token[:8], access_token[-8:]
+        )
     signed_urls = {}
     for url in urls:
         signed_url_in_cache = CACHE.get(url)
-        if signed_url_in_cache and signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
-            signed_urls[url] = signed_url_in_cache
+        if signed_url_in_cache:
+            if signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
+                signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
     log.debug("Already signed URLs:\n %s", signed_urls)
-    # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds remaining,
-    # in order to give a small amount of time to do stuff with the url
+    # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds
+    # remaining, in order to give a small amount of time to do stuff with the
+    # url
     session = requests.Session()
     retry = urllib3.util.retry.Retry(
         total=retry_total,
@@ -434,11 +471,17 @@ def get_signed_urls(
 
     signed_url_batch = SignedURLBatch(**response.json())
     if not signed_url_batch:
-        raise ValueError(f"No signed url batch found in response: {response.json()}")
+        raise ValueError(
+            f"No signed url batch found in response: {response.json()}"
+        )
     for url, href in signed_url_batch.hrefs.items():
         signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
         CACHE[url] = signed_url
         signed_urls[url] = signed_url
-    log.debug("Got signed urls %s in %s seconds", signed_urls, f"{time.time() - t:.2f}")
+    log.debug(
+        "Got signed urls %s in %s seconds",
+        signed_urls,
+        f"{time.time() - start_time:.2f}"
+    )
 
     return signed_urls
