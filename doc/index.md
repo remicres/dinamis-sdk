@@ -60,7 +60,7 @@ applied directly on a particular `pystac.item`, `pystac.collection`,
 The API reference can be found 
 [here](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs).
 
-## Example
+## Processing remote COGs locally
 
 The following demonstrates how to process remote COGs locally with your 
 favorite tool.
@@ -73,7 +73,6 @@ favorite tool.
     | Software | Minimum version |
     |----------|-----------------|
     | GDAL     | 3.4.1           |
-    | QGIS     | 3.18 (Firenze)  |
     | OTB      | 8.1.1           |
     | PyOTB    | 1.5.4           |
 
@@ -91,6 +90,45 @@ res = api.search(
 vsi_urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
 pyotb.Mosaic({"il": vsi_urls, "out": "raster.tif"})
 ```
+
+!!! Info
+    
+    Rasterio does not require to append the */vsicurl/* prefix to the COG URL.
+
+    ```python
+    import rasterio
+
+    for item in res.items():
+        url = item.assets["src_xs"].href
+        with rasterio.open(url) as dataset:
+            # do stuff
+            ...
+    ```
+
+## Opening remote COGs in QGIS
+
+From the set or results `res`, we just print the *src_xs* and *src_pan* assets 
+URLs:
+
+```python
+for item in res.items():
+    print(f"Links for {item.id}:")
+    print(item.assets['src_xs'].href)
+    print(item.assets['src_pan'].href)
+```
+
+To open one COG in QGIS, follow these steps:
+
+- Copy one link
+- In QGIS: *Layer* > *Add layer* > *Add raster layer*
+- In *Source type*, select *Protocol: HTTP(S), cloud, etc*
+- Paste the copied link in the *url* field
+
+!!! Warning
+
+    QGIS must be at least **3.18 (Firenze)** to open remote COG files provided 
+    by Dinamis-SDK prototype.
+
 
 ## Terms of service 
 
