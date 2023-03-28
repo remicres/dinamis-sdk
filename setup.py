@@ -1,10 +1,12 @@
 from setuptools import setup, find_packages
 
-install_requires = ["requests", "qrcode", "appdirs", "pydantic", "pystac", "pystac_client"]
+install_requires = [
+    "requests", "qrcode", "appdirs", "pydantic", "pystac", "pystac_client"
+]
 
 setup(
     name="dinamis-sdk",
-    version="0.0.3",
+    version="0.0.4",
     description="DINAMIS SDK",
     python_requires=">=3.8",
     author="Remi Cresson",
@@ -13,8 +15,5 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     packages=find_packages(),
-    entry_points={
-        'console_scripts': ['dinamis-sdk-cli=dinamis_sdk.cli:main', ]
-    },
 )
 
