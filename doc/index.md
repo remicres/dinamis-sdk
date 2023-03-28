@@ -6,10 +6,16 @@ Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 <img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png">
 </p>
 
+!!! Info
+
+    This is a demonstrator for the next-gen platform which should be ready in 
+    2024. Only France mainland Spot-6/7 Ortho (Direct Receiving Station) are
+    provided.
+
 ## Installation
 
 ```commandline
-pip install https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/archive/main/dinamis-sdk-main.zip
+pip install dinamis-sdk
 ```
 
 ## Quickstart
@@ -25,21 +31,39 @@ api = pystac_client.Client.open(
 ```
 
 Follow the instructions for the first connection.
-The credentials are then valid for 5 days. Every time you use `dinamis_sdk.sign_inplace`, the credentials are renewed
-for another 5 days without logging in again.
+
+!!! Info
+
+    The credentials are then valid for 5 days. Every time 
+    `dinamis_sdk.sign_inplace` is called, the credentials are renewed for 
+    another 5 days. After 5 days idle, you will have to log in again.
+
+The signed URLs for STAC objects assets are valid during 7 days starting after 
+`dinamis_sdk.sign_inplace` is called. `dinamis_sdk.sign_inplace` can also be 
+applied directly on a particular `pystac.item`, `pystac.collection`,
+`pystac.asset` or any URL as `str`.
+The API reference can be found 
+[here](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs).
 
 ## Example
 
-To process the COG files remotely with the *vsicurl* driver, the following software must be up-to-date:
+The following demonstrates how to process remote COGs locally with your 
+favorite tool.
 
-| Software | Minimum version |
-|----------|-----------------|
-| GDAL     | 3.4.1           |
-| QGIS     | 3.18 (Firenze)  |
-| OTB      | 8.1.1           |
- | PyOTB    | 1.5.4           |
+!!! Warning
 
-Mosaic some XS images with [pyotb](https://pypi.org/project/pyotb/) over Camargue area
+    To process remote COG files with the *vsicurl* driver, the following 
+    software must be up-to-date:
+
+    | Software | Minimum version |
+    |----------|-----------------|
+    | GDAL     | 3.4.1           |
+    | QGIS     | 3.18 (Firenze)  |
+    | OTB      | 8.1.1           |
+    | PyOTB    | 1.5.4           |
+
+Lets mosaic some XS images with [pyotb](https://pypi.org/project/pyotb/) over 
+Camargue area:
 
 ```python
 import pyotb
@@ -48,33 +72,10 @@ res = api.search(
     bbox=[4, 42.99, 5, 44.05],
     datetime=['2020-01-01', '2022-01-02']
 )
-imgs = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
-pyotb.Mosaic({"il": imgs, "out": "raster.tif"})
+
+vsi_urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
+pyotb.Mosaic({"il": vsi_urls, "out": "raster.tif"})
 ```
-
-## Access keys
-
-It is also possible to use access keys for a permanent access.
-Access keys can be provided to the library with the included configuration CLI:
-
-```commandline
-dinamis-sdk-cli 
-```
-
-The command above will ask you the access key ID and secret key in interactive mode. The credentials will be saved in 
-the user's config directory.
-
-> **Warning**
-> Never enter credentials on insecure platforms (e.g. online notebooks, etc) since they are stored on disk.
-> Use `dinamis-sdk-cli` from safe devices only.
-
-## Signed URLs
-
-The signed URLs for STAC objects assets are valid during 7 days starting when `dinamis_sdk.sign_inplace` has been 
-called.
-`dinamis_sdk.sign_inplace` can also directly be applied on a particular `pystac.item`, `pystac.collection`, 
-`pystac.asset` or any URL as `str`.
-The API reference can be found [here](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs).
 
 ## Terms of service 
 
