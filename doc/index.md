@@ -5,10 +5,9 @@ Ease the access to Very High Spatial Resolution imagery from DINAMIS.
 
 
 <div align="center">
-<div id="qr" style="display:inline-block; align: center; vertical-align: middle; height:4cm;" >
-<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.5cm;margin:2cm">
-<img src="https://oreme.org/app/uploads/logo-tetis-570x380.jpg" style="height:2cm;margin:1.5cm">
-<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1cm;margin:2cm">
+<div id="qr" style="display:inline-block; align: center; vertical-align: middle; height:3cm;" >
+<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1.5cm;margin:1.5cm">
+<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.75cm;margin:1.25cm">
 </div>
 </div>
 
