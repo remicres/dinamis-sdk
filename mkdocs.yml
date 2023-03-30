@@ -34,7 +34,7 @@ extra:
     tabs: true
   social:
     - icon: fontawesome/brands/gitlab
-      link: https://gitlab.irstea.fr/umr-tetis/scenes
+      link: https://gitlab.irstea.fr/dinamis/dinamis-sdk
 
 markdown_extensions:
   - attr_list
