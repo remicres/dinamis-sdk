@@ -1,0 +1,1 @@
+"""Module describing various examples."""

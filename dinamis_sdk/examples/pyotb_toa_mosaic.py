@@ -1,4 +1,4 @@
-"""TOA images mosaicing with pyotb"""
+"""TOA images mosaicing with pyotb."""
 from pystac_client import Client
 import pyotb
 from dinamis_sdk import sign_inplace
