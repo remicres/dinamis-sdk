@@ -89,7 +89,9 @@ Not lets create a function to grab some images over a given bounding box, and
 return the resulting mosaic:
 
 ```python
-def mosa(bbox, year):
+bbox = [4, 42.99, 5, 44.05]
+
+def mosa(year):
     res = api.search(bbox=bbox, datetime=[f'{year}-01-01', f'{year}-12-25'])
     urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
     return pyotb.Mosaic({"il": urls})
@@ -113,9 +115,8 @@ def ndvi(xs):
 We can now compute two NDVI mosaics for each year:
 
 ```python
-bbox = [4, 42.99, 5, 44.05]
-ndvi_22 = ndvi(mosa(bbox, '2022'))
-ndvi_21 = ndvi(mosa(bbox, '2021'))
+ndvi_22 = ndvi(mosa('2022'))
+ndvi_21 = ndvi(mosa('2021'))
 ```
 
 One last step consist in interpolating the values of the second NDVI mosaic 
