@@ -6,7 +6,6 @@ theme:
     repo: fontawesome/brands/gitlab
   features:
     - content.code.annotate
-    - navigation.tabs
     - toc.follow
     - navigation.instant
     - content.code.copy
@@ -25,8 +24,9 @@ plugins:
 - mermaid2
 
 nav:
-- API:  reference/ 
 - Home: index.md
+- Examples: examples.md
+- API:  reference/
 
 # Customization
 extra:
@@ -37,6 +37,7 @@ extra:
       link: https://gitlab.irstea.fr/umr-tetis/scenes
 
 markdown_extensions:
+  - attr_list
   - admonition
   - toc:
       permalink: true
@@ -48,6 +49,10 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.details
   - pymdownx.superfences
+  - mdx_math
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
 
 # rest of the navigation..
 site_name: Dinamis-SDK
