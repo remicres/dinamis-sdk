@@ -1,6 +1,7 @@
+"""TOA images mosaicing with pyotb"""
 from pystac_client import Client
-from dinamis_sdk import sign_inplace
 import pyotb
+from dinamis_sdk import sign_inplace
 
 api = Client.open(
     'https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr',
