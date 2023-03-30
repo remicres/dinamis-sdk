@@ -47,37 +47,28 @@ api = pystac_client.Client.open(
 
 Follow the instructions for the first connection.
 
-!!! Info
+## Credentials expiry
 
-    The credentials are then valid for 5 days. Every time 
-    `dinamis_sdk.sign_inplace` is called, the credentials are renewed for 
-    another 5 days. After 5 days idle, you will have to log in again.
+### Login
+
+The credentials are then valid for 5 days. Every time 
+`dinamis_sdk.sign_inplace` is called, the credentials are renewed for another 
+5 days. After 5 days idle, you will have to log in again.
+
+### Signed URLs
 
 The signed URLs for STAC objects assets are valid during 7 days starting after 
 `dinamis_sdk.sign_inplace` is called. `dinamis_sdk.sign_inplace` can also be 
 applied directly on a particular `pystac.item`, `pystac.collection`,
 `pystac.asset` or any URL as `str`.
-The API reference can be found 
-[here](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs).
 
 ### Processing remote COGs locally
 
 The following demonstrates how to process remote COGs locally with your 
 favorite tool.
 
-!!! Warning
-
-    To process remote COG files with the *vsicurl* driver, the following 
-    software must be up-to-date:
-
-    | Software | Minimum version |
-    |----------|-----------------|
-    | GDAL     | 3.4.1           |
-    | OTB      | 8.1.1           |
-    | PyOTB    | 1.5.4           |
-
-Lets **mosaic some XS images** with [pyotb](https://pypi.org/project/pyotb/) over 
-Camargue area:
+The following example performs the **mosaic of XS images** with 
+[pyotb](https://pypi.org/project/pyotb/) over the Camargue area:
 
 ```python
 import pyotb
@@ -91,19 +82,7 @@ vsi_urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
 pyotb.Mosaic({"il": vsi_urls, "out": "raster.tif"})
 ```
 
-!!! Info
-    
-    Rasterio does not require to append the */vsicurl/* prefix to the COG URL.
-
-    ```python
-    import rasterio
-
-    for item in res.items():
-        url = item.assets["src_xs"].href
-        with rasterio.open(url) as dataset:
-            # do stuff
-            ...
-    ```
+See this [section](#examples.html) for more examples.
 
 ### Opening remote COGs in QGIS
 
