@@ -55,7 +55,7 @@ pip_install:
 .doc_base:
   stage: Documentation
   before_script:
-    - pip install mkdocstrings mkdocstrings[crystal,python] mkdocs-material mkdocs-gen-files mkdocs-section-index mkdocs-literate-nav mkdocs-mermaid2-plugin --upgrade
+    - pip install -r doc/doc_requirements.txt
   artifacts:
     paths:
       - public
