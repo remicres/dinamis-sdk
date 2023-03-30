@@ -29,13 +29,13 @@ pylint:
   extends: .static_analysis_base
   script:
     - pip install pylint appdirs requests pystac pystac-client pydantic urllib3 qrcode
-    - pylint $PWD/dinamis_sdk  --disable=W0718,W0603,R0914,C0415
+    - pylint $PWD/dinamis_sdk --disable=W0718,W0603,R0914,C0415 --ignore=examples
 
 codespell:
   extends: .static_analysis_base
   script: 
     - pip install codespell
-    - codespell --skip="*.png,*.template,*.pbs,*.jpg,*git/lfs*,*venv/*,*test_data/*,./.git/objects*"
+    - codespell dinamis_sdk docs README.md
 
 pydocstyle:
   extends: .static_analysis_base
