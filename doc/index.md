@@ -1,7 +1,4 @@
-# Dinamis-SDK
-
-Ease the access to Very High Spatial Resolution imagery from Dinamis.
-
+# Dinamis SDK for python
 
 <div align="center">
 <div id="qr" style="display:inline-block; margin: auto; align: center; vertical-align: middle; height:3cm;" >
@@ -18,14 +15,12 @@ Ease the access to Very High Spatial Resolution imagery from Dinamis.
 <a href="LICENSE">
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
 </a>
-
 </div>
 
-!!! Info
-
-    This is a demonstrator for the next-gen platform which should be ready in 
-    2024. Only France mainland Spot-6/7 Ortho (Direct Receiving Station) are
-    provided.
+Python library for interacting with the prototype of DINAMIS Spatial Data
+Infrastructure APIs.
+The SDK and underlying APIs are part of a demonstrator for the next-gen 
+platform which should be ready in 2024.
 
 ## Installation
 
@@ -34,6 +29,14 @@ pip install dinamis-sdk
 ```
 
 ## Quickstart
+
+This library assists with signing STAC items assets URLs from the DINAMIS SDI
+prototype. The `sign` function operates directly on an HREF string, as well as 
+several [PySTAC](https://github.com/stac-utils/pystac) objects: `Asset`, 
+`Item`, and `ItemCollection`. In addition, the `sign` function accepts a 
+[STAC API Client](https://pystac-client.readthedocs.io/en/stable/) 
+`ItemSearch`, which performs a search and returns the resulting 
+`ItemCollection` with all assets signed.
 
 ```python
 import dinamis_sdk
@@ -45,84 +48,9 @@ api = pystac_client.Client.open(
 )
 ```
 
-Follow the instructions for the first connection.
-
-## Credentials expiry
-
-### Login
-
-The credentials are then valid for 5 days. Every time 
-`dinamis_sdk.sign_inplace` is called, the credentials are renewed for another 
-5 days. After 5 days idle, you will have to log in again.
-
-### Signed URLs
-
-The signed URLs for STAC objects assets are valid during 7 days starting after 
-`dinamis_sdk.sign_inplace` is called. `dinamis_sdk.sign_inplace` can also be 
-applied directly on a particular `pystac.item`, `pystac.collection`,
-`pystac.asset` or any URL as `str`.
-
-### Processing remote COGs locally
-
-The following demonstrates how to process remote COGs locally with your 
-favorite tool.
-
-The following example performs the **mosaic of XS images** with 
-[pyotb](https://pypi.org/project/pyotb/) over the Camargue area:
-
-```python
-import pyotb
-
-res = api.search(
-    bbox=[4, 42.99, 5, 44.05],
-    datetime=['2020-01-01', '2022-01-02']
-)
-
-vsi_urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
-pyotb.Mosaic({"il": vsi_urls, "out": "raster.tif"})
-```
-
-See this [section](#examples.html) for more examples.
-
-### Opening remote COGs in QGIS
-
-From the set or results `res`, we can print the *src_xs* and *src_pan* assets 
-URLs:
-
-```python
-for item in res.items():
-    print(f"Links for {item.id}:")
-    print(item.assets['src_xs'].href)
-    print(item.assets['src_pan'].href)
-```
-
-To open one COG in QGIS, follow these steps:
-
-- Copy one link
-- In QGIS: *Layer* > *Add layer* > *Add raster layer*
-- In *Source type*, select *Protocol: HTTP(S), cloud, etc*
-- Paste the copied link in the *url* field
-
-You can then process the remote COGs as any raster with your favorite tool 
-from QGIS.
-
-!!! Warning
-
-    QGIS must be at least **3.18 (Firenze)** to open remote COG files provided 
-    by Dinamis-SDK prototype.
-
-## Additional resources
-
-### API
-
-- [STAC API swagger UI](https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr/api.html)
-- [URL signing API swagger UI](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs)
-
-### Documentation
-
-- [PySTAC documentation](https://pystac.readthedocs.io/en/stable/api/pystac.html)
-- [PySTAC-Client documentation](https://pystac-client.readthedocs.io/en/stable/)
-- More information about the [STAC specification](https://stacspec.org/en/about/stac-spec/)
+Follow the instructions to authenticate.
+Read the [credentials section](#credentials.html) to know more about credential
+expiry.
 
 ## Contribute
 
@@ -133,7 +61,12 @@ You can open issues or merge requests at
 
 Please read carefully the 
 [terms of service](https://ids-dinamis.data-terra.org/web/guest/37) related to 
-the involved products (Spot-6/7, France Mainland, Direct Receiving Station).
+the involved products.
+
+!!! Info
+
+    For legal reasons, only France mainland Spot-6/7 Ortho (Direct Receiving 
+    Station) are available.
 
 ## Contact
 

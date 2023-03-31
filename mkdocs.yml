@@ -25,8 +25,12 @@ plugins:
 
 nav:
 - Home: index.md
-- Examples: examples.md
-- API:  reference/
+- Credentials: credentials.md
+- Additional resources: additional_resources.md
+- Examples:
+  - Processing: processing_examples.md
+  - QGIS: qgis.md
+- API reference:  reference/
 
 # Customization
 extra:
