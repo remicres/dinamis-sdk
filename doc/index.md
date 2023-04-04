@@ -49,7 +49,7 @@ api = pystac_client.Client.open(
 ```
 
 Follow the instructions to authenticate.
-Read the [credentials section](#credentials.html) to know more about credential
+Read the [credentials section](credentials) to know more about credential
 expiry.
 
 ## Contribute
