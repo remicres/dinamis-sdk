@@ -5,7 +5,8 @@ import json
 import appdirs
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
 
-SIGNED_URL_TTL_MARGIN = 1800  # 30 minutes
+# Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
+SIGNED_URL_TTL_MARGIN = os.environ.get("DINAMIS_SDK_TTL_MARGIN") or 1800
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
 log = logging.getLogger("dinamis_sdk")
 
