@@ -26,6 +26,7 @@ plugins:
 nav:
 - Home: index.md
 - Credentials: credentials.md
+- Advanced use: advanced.md
 - Additional resources: additional_resources.md
 - Examples:
   - Processing: processing_examples.md
