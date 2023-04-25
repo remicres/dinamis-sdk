@@ -1,14 +1,23 @@
 """Some helpers."""
-import os
-import logging
-import json
 import appdirs
+import json
+import logging
+import os
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
 
-# Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
-SIGNED_URL_TTL_MARGIN = os.environ.get("DINAMIS_SDK_TTL_MARGIN") or 1800
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
 log = logging.getLogger("dinamis_sdk")
+
+# Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
+ttl_margin_from_env = os.environ.get("DINAMIS_SDK_TTL_MARGIN")
+if ttl_margin_from_env:
+    if ttl_margin_from_env.isdigit():
+        ttl_margin_from_env = int(ttl_margin_from_env)
+        log.info(
+            "Setting TTL margin from environment variable to %s seconds",
+            ttl_margin_from_env
+        )
+SIGNED_URL_TTL_MARGIN = ttl_margin_from_env or 1800
 
 CFG_PTH = appdirs.user_config_dir(appname='dinamis_sdk_auth')
 if not os.path.exists(CFG_PTH):
