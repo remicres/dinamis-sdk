@@ -481,7 +481,7 @@ def get_signed_urls(
             raise ValueError(
                 f"No signed url batch found in response: {response.json()}"
             )
-        assert not_signed_urls.keys() == signed_url_batch.keys()
+        assert all(key in signed_url_batch for key in not_signed_urls)
         for url, href in signed_url_batch.hrefs.items():
             signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
             CACHE[url] = signed_url
