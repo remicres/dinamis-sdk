@@ -447,41 +447,49 @@ def get_signed_urls(
     for url in urls:
         signed_url_in_cache = CACHE.get(url)
         if signed_url_in_cache:
-            if signed_url_in_cache.ttl() > SIGNED_URL_TTL_MARGIN:
+            log.debug("URL %s already in cache", url)
+            ttl = signed_url_in_cache.ttl()
+            log.debug("URL %s TTL is %s", url, ttl)
+            if ttl > SIGNED_URL_TTL_MARGIN:
+                log.debug("Using cache (%s > %s)", ttl, SIGNED_URL_TTL_MARGIN)
                 signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
     log.debug("Already signed URLs:\n %s", signed_urls)
-    # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds
-    # remaining, in order to give a small amount of time to do stuff with the
-    # url
-    session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=retry_total,
-        backoff_factor=retry_backoff_factor,
-    )
-    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    response = session.post(
-        f"{S3_SIGNING_ENDPOINT}sign_urls",
-        params={"urls": not_signed_urls},
-        headers=headers
-    )
-    response.raise_for_status()
+    log.debug("Not signed URLs:\n %s", not_signed_urls)
 
-    signed_url_batch = SignedURLBatch(**response.json())
-    if not signed_url_batch:
-        raise ValueError(
-            f"No signed url batch found in response: {response.json()}"
+    if not_signed_urls:
+        # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds
+        # remaining, in order to give a small amount of time to do stuff with the
+        # url
+        session = requests.Session()
+        retry = urllib3.util.retry.Retry(
+            total=retry_total,
+            backoff_factor=retry_backoff_factor,
         )
-    for url, href in signed_url_batch.hrefs.items():
-        signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
-        CACHE[url] = signed_url
-        signed_urls[url] = signed_url
-    log.debug(
-        "Got signed urls %s in %s seconds",
-        signed_urls,
-        f"{time.time() - start_time:.2f}"
-    )
+        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        response = session.post(
+            f"{S3_SIGNING_ENDPOINT}sign_urls",
+            params={"urls": not_signed_urls},
+            headers=headers
+        )
+        response.raise_for_status()
+
+        signed_url_batch = SignedURLBatch(**response.json())
+        if not signed_url_batch:
+            raise ValueError(
+                f"No signed url batch found in response: {response.json()}"
+            )
+        assert not_signed_urls.keys() == signed_url_batch.keys()
+        for url, href in signed_url_batch.hrefs.items():
+            signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
+            CACHE[url] = signed_url
+            signed_urls[url] = signed_url
+        log.debug(
+            "Got signed urls %s in %s seconds",
+            signed_urls,
+            f"{time.time() - start_time:.2f}"
+        )
 
     return signed_urls
