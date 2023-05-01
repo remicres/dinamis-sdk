@@ -481,7 +481,7 @@ def get_signed_urls(
             raise ValueError(
                 f"No signed url batch found in response: {response.json()}"
             )
-        if not all(key in signed_url_batch.hrefs.items()
+        if not all(key in signed_url_batch.hrefs
                    for key in not_signed_urls):
             raise ValueError(
                 f"URLs to sign are {not_signed_urls} but returned signed URLs"
