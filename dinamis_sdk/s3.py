@@ -27,7 +27,7 @@ from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
-    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
+    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/ping"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
@@ -400,7 +400,7 @@ sign_reference_file = sign_mapping
 def get_signed_urls(
         urls: List[str],
         retry_total: int = 10,
-        retry_backoff_factor: float = 0.8
+        retry_backoff_factor: float = .8
 ) -> Dict[str, SignedURL]:
     """
     Get multiple signed URLs.
@@ -465,6 +465,8 @@ def get_signed_urls(
         retry = urllib3.util.retry.Retry(
             total=retry_total,
             backoff_factor=retry_backoff_factor,
+            status_forcelist=[404, 429, 500, 502, 503, 504],
+            allowed_methods=False,
         )
         adapter = requests.adapters.HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
