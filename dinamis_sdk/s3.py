@@ -27,7 +27,7 @@ from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
 
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
-    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/ping"
+    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
