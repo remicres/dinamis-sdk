@@ -1,8 +1,8 @@
 """Some helpers."""
-import appdirs
 import json
 import logging
 import os
+import appdirs
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
