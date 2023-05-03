@@ -459,8 +459,8 @@ def get_signed_urls(
 
     if not_signed_urls:
         # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds
-        # remaining, in order to give a small amount of time to do stuff with the
-        # url
+        # remaining, in order to give a small amount of time to do stuff with
+        # the url
         session = requests.Session()
         retry = urllib3.util.retry.Retry(
             total=retry_total,
