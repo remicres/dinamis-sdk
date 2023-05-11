@@ -8,9 +8,12 @@ api = Client.open(
     modifier=sign_inplace
 )
 
-year = 2022
-bbox = [4, 42.99, 5, 44.05]
-res = api.search(bbox=bbox, datetime=[f'{year}-01-01', f'{year}-12-25'])
+res = api.search(
+    bbox=[4, 42.99, 5, 44.05],
+    datetime=["2022-01-01", "2022-12-25"],
+    collections=["spot-6-7-drs"]
+)
+
 urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
 toa_images = [pyotb.OpticalCalibration({"in": url}) for url in urls]
 mosa = pyotb.Mosaic({"il": toa_images})

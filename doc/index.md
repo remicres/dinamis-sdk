@@ -57,17 +57,6 @@ expiry.
 You can open issues or merge requests at 
 [INRAE's gitlab](https://gitlab.irstea.fr/dinamis/dinamis-sdk).
 
-## Terms of service 
-
-Please read carefully the 
-[terms of service](https://ids-dinamis.data-terra.org/web/guest/37) related to 
-the involved products.
-
-!!! Info
-
-    For legal reasons, only France mainland Spot-6/7 Ortho (Direct Receiving 
-    Station) are available.
-
 ## Contact
 
 Rémi Cresson at INRAE dot fr
