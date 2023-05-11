@@ -1,6 +1,7 @@
 # Collections
 
 The following collections are currently available in the catalog:
+
 - `spot-6-7-drs`: Spot-6/7 images
 - `super-sentinel-2-l2a`: Sentinel-2 images enhanced to 1.5m
 
@@ -40,5 +41,5 @@ at 1.5m using A.I. with available Spot-6/7 imagery.
 
 <div align="center">
 <img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/uploads/b1ec1a00ead8b5f7d76a92c159a489f6/super_s2_roi.jpg">
-<p>Figure: super-sentinel-2 is currently produced on 4 small ROIs</p>
+<p>Figure: super-sentinel-2 is currently produced on 5 small ROIs</p>
 </div>
