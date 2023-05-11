@@ -25,6 +25,7 @@ plugins:
 
 nav:
 - Home: index.md
+- Collections: collections.md
 - Credentials: credentials.md
 - Advanced use: advanced.md
 - Additional resources: additional_resources.md
