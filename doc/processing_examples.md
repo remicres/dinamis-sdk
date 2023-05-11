@@ -29,9 +29,11 @@ dinamis-sdk/-/tree/main/dinamis_sdk/examples/pyotb_toa_mosaic.py){ .md-button }
 We first perform a STAC search over the camargue area in the year 2022:
 
 ```python
-year = 2022
-bbox = [4, 42.99, 5, 44.05]
-res = api.search(bbox=bbox, datetime=[f'{year}-01-01', f'{year}-12-25'])
+res = api.search(
+    bbox=[4, 42.99, 5, 44.05], 
+    datetime=["2022-01-01", "2022-12-25"],
+    collections=["spot-6-7-drs"]
+)
 ```
 
 Then, we append the */vsicurl/* suffix to XS images assets URLs to tell GDAL 
@@ -89,10 +91,13 @@ Not lets create a function to grab some images over a given bounding box, and
 return the resulting mosaic:
 
 ```python
-bbox = [4, 42.99, 5, 44.05]
-
 def mosa(year):
-    res = api.search(bbox=bbox, datetime=[f'{year}-01-01', f'{year}-12-25'])
+    res = api.search(
+        bbox=[4, 42.99, 5, 44.05], 
+        datetime=[f"{year}-01-01", f"{year}-12-25"],
+        collections=["spot-6-7-drs"]
+    )
+
     urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
     return pyotb.Mosaic({"il": urls})
 ```
@@ -115,8 +120,8 @@ def ndvi(xs):
 We can now compute two NDVI mosaics for each year:
 
 ```python
-ndvi_22 = ndvi(mosa('2022'))
-ndvi_21 = ndvi(mosa('2021'))
+ndvi_22 = ndvi(mosa("2022"))
+ndvi_21 = ndvi(mosa("2021"))
 ```
 
 One last step consist in interpolating the values of the second NDVI mosaic 
