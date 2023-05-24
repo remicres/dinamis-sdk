@@ -232,8 +232,6 @@ def sign_item(item: Item, copy: bool = True) -> Item:
         item.assets[key].href = signed_urls[asset.href]
     return item
 
-    return item
-
 
 @sign.register(Asset)
 def sign_asset(asset: Asset, copy: bool = True) -> Asset:
