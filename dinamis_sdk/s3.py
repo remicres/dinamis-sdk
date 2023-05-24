@@ -226,11 +226,12 @@ def sign_item(item: Item, copy: bool = True) -> Item:
     """
     if copy:
         item = item.clone()
-    urls = {key: asset.href for key, asset in item.assets.items()}
+    urls = [asset.href for asset in item.assets.values()]
     signed_urls = sign_urls(urls=urls)
-    for key in item.assets:
-        url = urls[key]
-        item.assets[key] = signed_urls[url]
+    for key, asset in item.assets.items():
+        item.assets[key].href = signed_urls[asset.href]
+    return item
+
     return item
 
 
@@ -274,16 +275,15 @@ def sign_item_collection(
     """
     if copy:
         item_collection = item_collection.clone()
-    urls = {
-        key: asset.href
+    urls = [
+        asset.href
         for item in item_collection
-        for key, asset in item.assets.items()
-    }
+        for asset in item.values()
+    ]
     signed_urls = sign_urls(urls=urls)
     for item in item_collection:
-        for key in item.assets:
-            url = item.assets[key]
-            item.assets[key].href = signed_urls[url]
+        for key, asset in item.assets.items():
+            item.assets[key].href = signed_urls[asset.href]
     return item_collection
 
 
@@ -331,11 +331,13 @@ def sign_collection(collection: Collection, copy: bool = True) -> Collection:
         if assets and not collection.assets:
             collection.assets = deepcopy(assets)
 
-    urls = [collection.assets[key].href for key in collection.assets]
+    urls = [
+        collection.assets[key].href
+        for key in collection.assets
+    ]
     signed_urls = sign_urls(urls=urls)
-    for key in collection.assets:
-        url = collection.assets[key].href
-        collection.assets[key].href = signed_urls[url]
+    for key, asset in collection.assets.items():
+        collection.assets[key].href = signed_urls[asset.href]
     return collection
 
 
