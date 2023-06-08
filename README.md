@@ -12,7 +12,7 @@
 </a>
 
 Largely inspired from *Microsoft Planetary Computer SDK*, **Dinamis-SDK** is 
-built on the STAC ecosystem and provides easy access to open-date Spot-6/7 
+built on the STAC ecosystem and provides easy access to open-data Spot-6/7 
 imagery in COG format.
 
 ```python
