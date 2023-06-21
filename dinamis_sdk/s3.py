@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from functools import singledispatch
 from typing import Any, Dict, Mapping, TypeVar, cast, List
 from urllib.parse import urlparse, parse_qs
+import math
 import urllib3.util.retry
 import requests
 import requests.adapters
@@ -25,6 +26,7 @@ from pystac_client import ItemSearch
 
 from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
 
+MAX_URLS = 64
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
     "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
@@ -471,28 +473,41 @@ def get_signed_urls(
         adapter = requests.adapters.HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        response = session.post(
-            f"{S3_SIGNING_ENDPOINT}sign_urls",
-            params={"urls": not_signed_urls},
-            headers=headers
-        )
-        response.raise_for_status()
+        n_urls = len(not_signed_urls)
+        log.debug("Number of URLs to sign: %s", n_urls)
+        n_chunks = math.ceil(n_urls / MAX_URLS)
+        log.debug("Number of chunks of URLs to sign: %s", n_chunks)
+        for i_chunk in range(n_chunks):
+            log.debug("Processing chunk %s/%s", i_chunk + 1, n_chunks)
+            chunk_start = i_chunk * MAX_URLS
+            chunk_end = min(chunk_start + MAX_URLS, n_urls)
+            not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
+            response = session.post(
+                f"{S3_SIGNING_ENDPOINT}sign_urls",
+                params={"urls": not_signed_urls_chunk},
+                headers=headers
+            )
+            response.raise_for_status()
 
-        signed_url_batch = SignedURLBatch(**response.json())
-        if not signed_url_batch:
-            raise ValueError(
-                f"No signed url batch found in response: {response.json()}"
-            )
-        if not all(key in signed_url_batch.hrefs
-                   for key in not_signed_urls):
-            raise ValueError(
-                f"URLs to sign are {not_signed_urls} but returned signed URLs"
-                f"are for {signed_url_batch.hrefs.keys()}"
-            )
-        for url, href in signed_url_batch.hrefs.items():
-            signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
-            CACHE[url] = signed_url
-            signed_urls[url] = signed_url
+            signed_url_batch = SignedURLBatch(**response.json())
+            if not signed_url_batch:
+                raise ValueError(
+                    f"No signed url batch found in response: {response.json()}"
+                )
+            if not all(key in signed_url_batch.hrefs
+                       for key in not_signed_urls_chunk):
+                raise ValueError(
+                    f"URLs to sign are {not_signed_urls_chunk} but returned "
+                    f"signed URLs"
+                    f"are for {signed_url_batch.hrefs.keys()}"
+                )
+            for url, href in signed_url_batch.hrefs.items():
+                signed_url = SignedURL(
+                    expiry=signed_url_batch.expiry,
+                    href=href
+                )
+                CACHE[url] = signed_url
+                signed_urls[url] = signed_url
         log.debug(
             "Got signed urls %s in %s seconds",
             signed_urls,

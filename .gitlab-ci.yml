@@ -10,8 +10,8 @@ stages:
   - Static Analysis
   - Install
   - Documentation
+  - Test
   - Ship
-#  - Test
 
 # ------------------------------ Static analysis ------------------------------
 
@@ -74,6 +74,17 @@ pages:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   script:
     - mkdocs build --site-dir public
+
+# --------------------------------- Test --------------------------------------
+
+Tests:
+  stage: Test
+  before_script:
+    - pip install .
+    - pip install pystac-client
+  script:
+    - python tests/test_spot-6-7-drs.py
+    - python tests/test_super-s2.py
 
 # --------------------------------- Ship --------------------------------------
 
