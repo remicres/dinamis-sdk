@@ -63,15 +63,15 @@ pip_install:
 
 test:
   extends: .doc_base
-  rules:
-    - if: $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH
+  except:
+    - main
   script:
     - mkdocs build --site-dir public_test
 
 pages:
   extends: .doc_base
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  only:
+    - main
   script:
     - mkdocs build --site-dir public
 
@@ -79,6 +79,8 @@ pages:
 
 Tests:
   stage: Test
+  except:
+    - main
   before_script:
     - pip install .
     - pip install pystac-client
