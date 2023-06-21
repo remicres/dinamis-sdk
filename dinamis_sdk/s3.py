@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from functools import singledispatch
 from typing import Any, Dict, Mapping, TypeVar, cast, List
 from urllib.parse import urlparse, parse_qs
+import math
 import urllib3.util.retry
 import requests
 import requests.adapters
@@ -22,7 +23,6 @@ from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
 import pystac_client
 from pystac_client import ItemSearch
-import math
 
 from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
 
