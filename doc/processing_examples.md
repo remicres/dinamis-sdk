@@ -5,7 +5,7 @@ To process remote COG files, the following software must be up-to-date:
 | Software | Minimum version |
 |----------|-----------------|
 | GDAL     | 3.4.1           |
-| OTB      | 8.1.1           |
+| OTB      | 8.1.2           |
 | PyOTB    | 1.5.4           |
 
 All examples begin with importing `pystac_client` and `dinamis_sdk` and 
