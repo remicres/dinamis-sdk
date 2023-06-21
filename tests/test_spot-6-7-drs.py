@@ -10,7 +10,7 @@ res = api.search(
     datetime=["2017-01-01", "2022-12-31"],
     collections=["spot-6-7-drs"]
 )
-urls = [item.assets['xs'].href for item in res.items()]
+urls = [item.assets['src_xs'].href for item in res.items()]
 print(len(urls))
 assert len(urls) > 1000
 
