@@ -60,6 +60,9 @@ if settings_file and os.path.isfile(settings_file):
 
 
 def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
+    """
+    retrieve the token endpoint from the s3 signing endpoint.
+    """
     openapi_url = s3_signing_endpoint + "openapi.json"
     log.debug("Fetching OAuth2 endpoint from openapi url %s", openapi_url)
     res = requests.get(
@@ -68,8 +71,8 @@ def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
     )
     res.raise_for_status()
     data = res.json()
-    return data["components"]["securitySchemes"]["OAuth2PasswordBearer"]\
-        ["flows"]["password"]["tokenUrl"]
+    oauth2_defs = data["components"]["securitySchemes"]["OAuth2PasswordBearer"]
+    return oauth2_defs["flows"]["password"]["tokenUrl"]
 
 
 # Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
