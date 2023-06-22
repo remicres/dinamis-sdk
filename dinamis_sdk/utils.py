@@ -19,6 +19,11 @@ if ttl_margin_from_env:
         )
 SIGNED_URL_TTL_MARGIN = ttl_margin_from_env or 1800
 
+MAX_URLS = 64
+S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
+S3_SIGNING_ENDPOINT = \
+    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
+
 CFG_PTH = appdirs.user_config_dir(appname='dinamis_sdk_auth')
 if not os.path.exists(CFG_PTH):
     try:
@@ -50,4 +55,25 @@ if settings_file and os.path.isfile(settings_file):
         with open(settings_file, encoding='UTF-8') as json_file:
             CREDENTIALS = StorageCredentials(**json.load(json_file))
     except FileNotFoundError:
-        logging.debug("Setting file %s does not exist", settings_file)
+        log.debug("Setting file %s does not exist", settings_file)
+
+
+def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
+    openapi_url = s3_signing_endpoint + "openapi.json"
+    log.debug("Fetching OAuth2 endpoint from openapi url %s", openapi_url)
+    res = requests.get(
+        openapi_url,
+        timeout=10,
+    )
+    res.raise_for_status()
+    data = res.json()
+    return data["components"]["securitySchemes"]["OAuth2PasswordBearer"] \
+        ["flows"]["password"]["tokenUrl"]
+
+
+# Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
+# .crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect/token
+TOKEN_ENDPOINT = retrieve_token_endpoint()
+# Auth base URL is typically something like: https://keycloak-dinamis.apps.okd.
+# crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect
+AUTH_BASE_URL = TOKEN_ENDPOINT.rsplit('/', 1)[0]
