@@ -4,6 +4,7 @@ import logging
 import os
 import appdirs
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
+import requests
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
 log = logging.getLogger("dinamis_sdk")
@@ -67,7 +68,7 @@ def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
     )
     res.raise_for_status()
     data = res.json()
-    return data["components"]["securitySchemes"]["OAuth2PasswordBearer"] \
+    return data["components"]["securitySchemes"]["OAuth2PasswordBearer"]\
         ["flows"]["password"]["tokenUrl"]
 
 
