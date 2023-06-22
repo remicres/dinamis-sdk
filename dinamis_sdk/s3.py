@@ -485,7 +485,8 @@ def get_signed_urls(
             response = session.post(
                 f"{S3_SIGNING_ENDPOINT}sign_urls",
                 params={"urls": not_signed_urls_chunk},
-                headers=headers
+                headers=headers,
+                timeout=10
             )
             response.raise_for_status()
 
