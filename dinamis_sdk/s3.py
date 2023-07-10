@@ -23,10 +23,15 @@ from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
 import pystac_client
 from pystac_client import ItemSearch
+import packaging.version
+import pydantic
 
 from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS, MAX_URLS, \
     S3_SIGNING_ENDPOINT, S3_STORAGE_DOMAIN
 
+_PYDANTIC_2_0 = packaging.version.parse(
+    pydantic.__version__
+) >= packaging.version.parse("2.0.0")
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
@@ -46,8 +51,11 @@ class URLBase(BaseModel):  # pylint: disable = R0903
     class Config:  # pylint: disable = R0903
         """Config for URLBase model."""
 
-        json_encoders = {datetime: datetime_to_str}
-        allow_population_by_field_name = True
+        if _PYDANTIC_2_0:
+            populate_by_name = True
+        else:
+            allow_population_by_field_name = True
+            json_encoders = {datetime: datetime_to_str}
 
 
 class SignedURL(URLBase):  # pylint: disable = R0903
