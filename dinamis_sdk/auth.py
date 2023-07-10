@@ -9,7 +9,7 @@ from typing import Dict
 import requests
 from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
 import qrcode
-from .utils import log, JWT_FILE
+from .utils import log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL
 
 
 class JWT(BaseModel):  # pylint: disable = R0903
@@ -37,12 +37,9 @@ class GrantMethodBase:
     headers: Dict[str, str] = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    keycloak_server_url = "https://keycloak-dinamis.apps.okd.crocc.meso." \
-                          "umontpellier.fr/auth"
+    token_endpoint = TOKEN_ENDPOINT
+    base_url = AUTH_BASE_URL
     keycloak_realm = "dinamis"
-    base_url = f"{keycloak_server_url}/realms/{keycloak_realm}/" \
-               "protocol/openid-connect"
-    token_endpoint = f"{base_url}/token"
     client_id: str
 
     @abstractmethod

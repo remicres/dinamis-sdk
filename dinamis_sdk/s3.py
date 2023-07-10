@@ -24,12 +24,9 @@ from pystac.utils import datetime_to_str
 import pystac_client
 from pystac_client import ItemSearch
 
-from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS
+from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS, MAX_URLS, \
+    S3_SIGNING_ENDPOINT, S3_STORAGE_DOMAIN
 
-MAX_URLS = 64
-S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
-S3_SIGNING_ENDPOINT = \
-    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
