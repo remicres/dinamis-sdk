@@ -23,7 +23,7 @@ SIGNED_URL_TTL_MARGIN = ttl_margin_from_env or 1800
 MAX_URLS = 64
 S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
-    "https://s3-signing-cdos.apps.okd.crocc.meso.umontpellier.fr/"
+    "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
 
 CFG_PTH = appdirs.user_config_dir(appname='dinamis_sdk_auth')
 if not os.path.exists(CFG_PTH):
