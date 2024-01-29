@@ -21,7 +21,7 @@ if ttl_margin_from_env:
 SIGNED_URL_TTL_MARGIN = ttl_margin_from_env or 1800
 
 MAX_URLS = 64
-S3_STORAGE_DOMAIN = "minio-api-dinamis.apps.okd.crocc.meso.umontpellier.fr"
+S3_STORAGE_DOMAIN = "meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
     "https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/"
 
