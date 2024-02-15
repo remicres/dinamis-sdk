@@ -27,7 +27,7 @@ import packaging.version
 import pydantic
 
 from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS, MAX_URLS, \
-    S3_SIGNING_ENDPOINT, S3_STORAGE_DOMAIN
+    S3_SIGNING_ENDPOINT, S3_STORAGE_DOMAIN, SIGNED_URL_DURATION_SECONDS
 
 _PYDANTIC_2_0 = packaging.version.parse(
     pydantic.__version__
@@ -487,9 +487,12 @@ def get_signed_urls(
             chunk_start = i_chunk * MAX_URLS
             chunk_end = min(chunk_start + MAX_URLS, n_urls)
             not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
+            params={"urls": not_signed_urls_chunk}
+            if SIGNED_URL_DURATION_SECONDS:
+                params.update({"duration_seconds": SIGNED_URL_DURATION_SECONDS})
             response = session.post(
                 f"{S3_SIGNING_ENDPOINT}sign_urls",
-                params={"urls": not_signed_urls_chunk},
+                params=params,
                 headers=headers,
                 timeout=10
             )
