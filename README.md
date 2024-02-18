@@ -1,11 +1,11 @@
 # DINAMIS SDK
 
 <br>
-<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/releases">
-<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/badges/release.svg">
+<a href="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/releases">
+<img src="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/badges/release.svg">
 </a>
-<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/commits/main">
-<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/badges/main/pipeline.svg">
+<a href="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/commits/main">
+<img src="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/badges/main/pipeline.svg">
 </a>
 <a href="LICENSE">
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
