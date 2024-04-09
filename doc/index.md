@@ -6,11 +6,11 @@
 <img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.75cm; padding: 5px">
 </div>
 <br>
-<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/releases">
-<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/badges/release.svg">
+<a href="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/releases">
+<img src="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/badges/release.svg">
 </a>
-<a href="https://gitlab.irstea.fr/dinamis/dinamis-sdk/-/commits/main">
-<img src="https://gitlab.irstea.fr/dinamis/dinamis-sdk/badges/main/pipeline.svg">
+<a href="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/commits/main">
+<img src="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/badges/main/pipeline.svg">
 </a>
 <a href="LICENSE">
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
@@ -55,7 +55,7 @@ expiry.
 ## Contribute
 
 You can open issues or merge requests at 
-[INRAE's gitlab](https://gitlab.irstea.fr/dinamis/dinamis-sdk).
+[INRAE's gitlab](https://forgemia.inra.fr/cdos-pub/dinamis-sdk).
 
 ## Contact
 
