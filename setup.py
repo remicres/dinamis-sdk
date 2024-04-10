@@ -13,7 +13,7 @@ install_requires = [
 
 setup(
     name="dinamis-sdk",
-    version="0.1.1",
+    version="0.1.2",
     description="DINAMIS SDK",
     python_requires=">=3.8",
     author="Remi Cresson",

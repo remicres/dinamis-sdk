@@ -89,3 +89,6 @@ TOKEN_ENDPOINT = retrieve_token_endpoint()
 # Auth base URL is typically something like: https://keycloak-dinamis.apps.okd.
 # crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect
 AUTH_BASE_URL = TOKEN_ENDPOINT.rsplit('/', 1)[0]
+
+# Token server (optional)
+TOKEN_SERVER = os.environ.get("DINAMIS_SDK_TOKEN_SERVER")
