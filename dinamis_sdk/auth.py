@@ -251,6 +251,7 @@ class OAuth2Session:
 
 class TokenServer:
     def __init__(self, endpoint: str, total_retry=5, backoff_factor=0.8):
+        self.endpoint = endpoint
         self.session = requests.Session()
         retry = urllib3.util.retry.Retry(
             total=total_retry,
