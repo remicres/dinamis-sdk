@@ -10,6 +10,7 @@ import requests
 from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
 import qrcode
 from .utils import log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, TOKEN_SERVER
+import urllib3
 
 
 class JWT(BaseModel):  # pylint: disable = R0903
