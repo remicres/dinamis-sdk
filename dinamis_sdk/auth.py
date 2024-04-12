@@ -251,20 +251,19 @@ class OAuth2Session:
 
 class TokenServer:
     def __init__(self, endpoint: str, total_retry=5, backoff_factor=0.8):
-        session = requests.Session()
+        self.session = requests.Session()
         retry = urllib3.util.retry.Retry(
             total=total_retry,
             backoff_factor=backoff_factor,
             status_forcelist=[404, 429, 500, 502, 503, 504],
         )
         adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
-        self.endpoint = endpoint
-        log.info("Using Token Server: %s", endpoint)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        log.info("Using Token Server: %s", self.endpoint)
 
-    def get_access_token() -> str:
-        return session.get(self.endpoint, timeout=10).json()
+    def get_access_token(self) -> str:
+        return self.session.get(self.endpoint, timeout=10).json()
 
 
 session = TokenServer(TOKEN_SERVER) if TOKEN_SERVER else OAuth2Session()
