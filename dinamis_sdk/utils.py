@@ -17,18 +17,18 @@ def _get_seconds(env_var_name: str) -> int:
     return None
 
 # Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
-ttl_margin_from_env = _get_seconds("DINAMIS_SDK_TTL_MARGIN")
-log.info(
-    "Setting TTL margin from environment variable to %s seconds",
-    ttl_margin_from_env
-)
+if (ttl_margin_from_env := _get_seconds("DINAMIS_SDK_TTL_MARGIN")):
+    log.info(
+        "Setting TTL margin from environment variable to %s seconds",
+        ttl_margin_from_env
+    )
 SIGNED_URL_TTL_MARGIN = ttl_margin_from_env or 1800
 
-SIGNED_URL_DURATION_SECONDS = _get_seconds("DINAMIS_SDK_DURATION_SECONDS")
-log.info(
-    "Setting duration seconds from environment variable to %s seconds",
-    SIGNED_URL_DURATION_SECONDS
-)
+if (SIGNED_URL_DURATION_SECONDS := _get_seconds("DINAMIS_SDK_DURATION_SECONDS")):
+    log.info(
+        "Setting duration seconds from environment variable to %s seconds",
+        SIGNED_URL_DURATION_SECONDS
+    )
 
 MAX_URLS = 64
 S3_STORAGE_DOMAIN = "meso.umontpellier.fr"

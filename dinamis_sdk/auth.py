@@ -260,6 +260,7 @@ class TokenServer:
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         self.endpoint = endpoint
+        log.info("Using Token Server: %s", endpoint)
 
     def get_access_token() -> str:
         return session.get(self.endpoint, timeout=10).json()
