@@ -40,7 +40,7 @@ extra:
     tabs: true
   social:
     - icon: fontawesome/brands/gitlab
-      link: https://gitlab.irstea.fr/dinamis/dinamis-sdk
+      link: https://forgemia.inra.fr/cdos-pub/dinamis-sdk
 
 markdown_extensions:
   - attr_list
@@ -61,6 +61,6 @@ markdown_extensions:
 
 # rest of the navigation..
 site_name: Dinamis-SDK
-repo_url: https://gitlab.irstea.fr/dinamis/dinamis-sdk
+repo_url: https://forgemia.inra.fr/cdos-pub/dinamis-sdk
 repo_name: dinamis-sdk
 docs_dir: doc/

@@ -12,15 +12,15 @@
 </a>
 
 Largely inspired from *Microsoft Planetary Computer SDK*, **Dinamis-SDK** is 
-built on the STAC ecosystem and provides easy access to open-data Spot-6/7 
-imagery in COG format.
+built on the STAC ecosystem to provide an easy access to remote sensing imagery
+and thematic products of the **THEIA/DINAMIS data center of Montpellier**.
 
 ```python
 import dinamis_sdk
 import pystac_client
 
 api = pystac_client.Client.open(
-   'https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr',
+   'https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr',
    modifier=dinamis_sdk.sign_inplace,
 )
 ```
