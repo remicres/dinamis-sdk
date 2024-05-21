@@ -6,7 +6,6 @@ from dinamis_sdk.s3 import (
     sign_inplace,
     sign_urls,
     sign_item,
-    sign_assets,
     sign_asset,
     sign_item_collection
 )  # noqa
