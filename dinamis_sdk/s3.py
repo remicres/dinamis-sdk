@@ -145,7 +145,7 @@ def sign_string(url: str, copy: bool = True) -> str:
     return sign_urls(urls=[url])[url]
 
 
-def sign_urls(urls: List[str]) -> str:
+def sign_urls(urls: List[str]) -> Dict[str, str]:
     """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.

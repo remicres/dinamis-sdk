@@ -4,7 +4,7 @@ __version__ = pkg_resources.require("dinamis-sdk")[0].version
 from dinamis_sdk.s3 import (
     sign,
     sign_inplace,
-    sign_url,
+    sign_urls,
     sign_item,
     sign_assets,
     sign_asset,
