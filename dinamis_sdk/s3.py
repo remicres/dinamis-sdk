@@ -283,7 +283,7 @@ def sign_item_collection(
     urls = [
         asset.href
         for item in item_collection
-        for asset in item.values()
+        for asset in item.assets.values()
     ]
     signed_urls = sign_urls(urls=urls)
     for item in item_collection:
