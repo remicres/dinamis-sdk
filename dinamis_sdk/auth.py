@@ -9,8 +9,8 @@ from typing import Dict
 import requests
 from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
 import qrcode
-from .utils import log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, TOKEN_SERVER
 import urllib3
+from .utils import log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, TOKEN_SERVER
 
 
 class JWT(BaseModel):  # pylint: disable = R0903
@@ -250,6 +250,7 @@ class OAuth2Session:
 
 
 class TokenServer:
+    """Token server."""
     def __init__(self, endpoint: str, total_retry=5, backoff_factor=0.8):
         self.endpoint = endpoint
         self.session = requests.Session()
@@ -271,6 +272,7 @@ session = TokenServer(TOKEN_SERVER) if TOKEN_SERVER else OAuth2Session()
 
 
 def _get_access_token():
+    """Get an access token."""
     return session.get_access_token()
 
 

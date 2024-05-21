@@ -145,7 +145,7 @@ def sign_string(url: str, copy: bool = True) -> str:
     return sign_urls(urls=[url])[url]
 
 
-def sign_urls(urls: List[str]) -> str:
+def sign_urls(urls: List[str]) -> Dict[str, str]:
     """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.
@@ -487,9 +487,9 @@ def get_signed_urls(
             chunk_start = i_chunk * MAX_URLS
             chunk_end = min(chunk_start + MAX_URLS, n_urls)
             not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
-            params={"urls": not_signed_urls_chunk}
+            params = {"urls": not_signed_urls_chunk}
             if SIGNED_URL_DURATION_SECONDS:
-                params.update({"duration_seconds": SIGNED_URL_DURATION_SECONDS})
+                params["duration_seconds"] = SIGNED_URL_DURATION_SECONDS
             response = session.post(
                 f"{S3_SIGNING_ENDPOINT}sign_urls",
                 params=params,
