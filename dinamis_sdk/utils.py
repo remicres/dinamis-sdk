@@ -6,11 +6,16 @@ import appdirs
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
 import requests
 
+# Env vars
+ENV_TTL_MARGIN = "DINAMIS_SDK_TTL_MARGIN"
+ENV_DURATION_SECS = "DINAMIS_SDK_DURATION_SECONDS"
+ENV_BYPASS_API = "DINAMIS_SDK_BYPASS_API"
+
 logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
 log = logging.getLogger("dinamis_sdk")
 
 
-def _get_seconds(env_var_name: str, default: int) -> int:
+def _get_seconds(env_var_name: str, default: int = None) -> int:
     val = os.environ.get(env_var_name)
     if val:
         if val.isdigit():
@@ -24,11 +29,8 @@ def _get_seconds(env_var_name: str, default: int) -> int:
 
 
 # Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
-SIGNED_URL_TTL_MARGIN = _get_seconds("DINAMIS_SDK_TTL_MARGIN", 1800)
-SIGNED_URL_DURATION_SECONDS = _get_seconds(
-    "DINAMIS_SDK_DURATION_SECONDS", 
-    None
-)
+SIGNED_URL_TTL_MARGIN = _get_seconds(ENV_TTL_MARGIN, 1800)
+SIGNED_URL_DURATION_SECONDS = _get_seconds(ENV_DURATION_SECS)
 
 MAX_URLS = 64
 S3_STORAGE_DOMAIN = "meso.umontpellier.fr"
@@ -83,12 +85,14 @@ def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
     return oauth2_defs["flows"]["password"]["tokenUrl"]
 
 
+BYPASS_API = os.environ.get(ENV_BYPASS_API)
+
 # Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
 # .crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect/token
-TOKEN_ENDPOINT = retrieve_token_endpoint()
+TOKEN_ENDPOINT = None if BYPASS_API else retrieve_token_endpoint()
 # Auth base URL is typically something like: https://keycloak-dinamis.apps.okd.
 # crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect
-AUTH_BASE_URL = TOKEN_ENDPOINT.rsplit('/', 1)[0]
+AUTH_BASE_URL = None if BYPASS_API else TOKEN_ENDPOINT.rsplit('/', 1)[0]
 
 # Token server (optional)
 TOKEN_SERVER = os.environ.get("DINAMIS_SDK_TOKEN_SERVER")
