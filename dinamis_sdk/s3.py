@@ -26,8 +26,16 @@ from pystac_client import ItemSearch
 import packaging.version
 import pydantic
 
-from .utils import log, SIGNED_URL_TTL_MARGIN, CREDENTIALS, MAX_URLS, \
-    S3_SIGNING_ENDPOINT, S3_STORAGE_DOMAIN, SIGNED_URL_DURATION_SECONDS
+from .utils import (
+    log,
+    SIGNED_URL_TTL_MARGIN, 
+    CREDENTIALS, 
+    MAX_URLS,
+    S3_SIGNING_ENDPOINT, 
+    S3_STORAGE_DOMAIN, 
+    SIGNED_URL_DURATION_SECONDS,
+    BYPASS_API
+)
 
 _PYDANTIC_2_0 = packaging.version.parse(
     pydantic.__version__
@@ -35,6 +43,7 @@ _PYDANTIC_2_0 = packaging.version.parse(
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
+# todo: fix the expression
 asset_xpr = re.compile(
     r"https://(?P<account>[A-z0-9]+?)"
     r"\.minio-dinamis\.apps\.okd\.crocc\.meso\.umontpellier\.fr/"
@@ -443,6 +452,8 @@ def get_signed_urls(
             "dinamis-secret-key": CREDENTIALS.secret_key
         })
         log.debug("Using credentials (access/secret keys)")
+    elif BYPASS_API:
+        log.debug("Using bypass API %s", BYPASS_API)
     else:
         from .auth import get_access_token
         access_token = get_access_token()
