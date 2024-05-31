@@ -59,7 +59,7 @@ class GrantMethodBase:
         """Base payload."""
         return {
             "client_id": self.client_id,
-            "scope": "offline_access"
+            "scope": "offline_access openid"
         }
 
     def refresh_token(self, old_jwt: JWT) -> JWT:
