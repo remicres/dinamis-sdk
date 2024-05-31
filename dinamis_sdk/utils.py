@@ -86,6 +86,8 @@ def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
 
 
 BYPASS_API = os.environ.get(ENV_BYPASS_API)
+if BYPASS_API:
+    S3_SIGNING_ENDPOINT = ENV_BYPASS_API
 
 # Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
 # .crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect/token
