@@ -87,6 +87,7 @@ Tests:
   script:
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
+    - python tests/test_push.py
 
 # --------------------------------- Ship --------------------------------------
 

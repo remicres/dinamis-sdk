@@ -7,29 +7,30 @@ import time
 from abc import abstractmethod
 from typing import Dict
 import requests
-from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
+from pydantic import BaseModel  # pylint: disable = no-name-in-module
 import qrcode
-import urllib3
-from .utils import log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, TOKEN_SERVER
+from .utils import (
+    log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, settings, create_session
+)
 
 
 class JWT(BaseModel):  # pylint: disable = R0903
     """JWT model."""
 
-    access_token: str = Field(alias="access_token")
-    expires_in: int = Field(alias="expires_in")
-    refresh_token: str = Field(alias="refresh_token")
-    refresh_expires_in: int = Field(alias="refresh_expires_in")
-    token_type: str = Field(alias="token_type")
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    refresh_expires_in: int
+    token_type: str
 
 
 class DeviceGrantResponse(BaseModel):  # pylint: disable = R0903
     """Device grant login response model."""
 
-    verification_uri_complete: str = Field(alias="verification_uri_complete")
-    device_code: str = Field(alias="device_code")
-    expires_in: int = Field(alias="expires_in")
-    interval: int = Field(alias="interval")
+    verification_uri_complete: str
+    device_code: str
+    expires_in: int
+    interval: int
 
 
 class GrantMethodBase:
@@ -213,13 +214,7 @@ class OAuth2Session:
         self.save_token(now)
 
     def get_access_token(self) -> str:
-        """
-        Get the access token.
-
-        Returns:
-            access token
-
-        """
+        """Return the access token."""
         if not self.jwt:
             # First JWT initialisation
             if JWT_FILE and os.path.isfile(JWT_FILE):
@@ -233,7 +228,7 @@ class OAuth2Session:
                             log.debug(
                                 "Credentials from %s still valid", JWT_FILE
                             )
-                except Exception as error:
+                except FileNotFoundError as error:
                     log.warning(
                         "Warning: can't use token from file %s (%s)",
                         JWT_FILE,
@@ -251,24 +246,23 @@ class OAuth2Session:
 
 class TokenServer:
     """Token server."""
-    def __init__(self, endpoint: str, total_retry=5, backoff_factor=0.8):
+
+    def __init__(self, endpoint: str, retry_total=5, retry_backoff_factor=0.8):
+        """Initialize the token server."""
         self.endpoint = endpoint
-        self.session = requests.Session()
-        retry = urllib3.util.retry.Retry(
-            total=total_retry,
-            backoff_factor=backoff_factor,
-            status_forcelist=[404, 429, 500, 502, 503, 504],
+        self.session = create_session(
+            retry_total=retry_total,
+            retry_backoff_factor=retry_backoff_factor
         )
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
         log.info("Using Token Server: %s", self.endpoint)
 
     def get_access_token(self) -> str:
+        """Return the access token."""
         return self.session.get(self.endpoint, timeout=10).json()
 
 
-session = TokenServer(TOKEN_SERVER) if TOKEN_SERVER else OAuth2Session()
+session = TokenServer(settings.dinamis_sdk_token_server) \
+    if settings.dinamis_sdk_token_server else OAuth2Session()
 
 
 def _get_access_token():
