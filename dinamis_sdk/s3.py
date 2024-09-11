@@ -14,10 +14,7 @@ from functools import singledispatch
 from typing import Any, Dict, Mapping, TypeVar, cast, List
 from urllib.parse import urlparse, parse_qs
 import math
-import urllib3.util.retry
-import requests
-import requests.adapters
-from pydantic import BaseModel, Field  # pylint: disable = no-name-in-module
+from pydantic import BaseModel  # pylint: disable = no-name-in-module
 from pystac import Asset, Item, ItemCollection, STACObjectType, Collection
 from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
@@ -28,13 +25,12 @@ import pydantic
 
 from .utils import (
     log,
-    SIGNED_URL_TTL_MARGIN, 
-    CREDENTIALS, 
+    settings,
+    CREDENTIALS,
     MAX_URLS,
-    S3_SIGNING_ENDPOINT, 
-    S3_STORAGE_DOMAIN, 
-    SIGNED_URL_DURATION_SECONDS,
-    BYPASS_API
+    S3_SIGNING_ENDPOINT,
+    S3_STORAGE_DOMAIN,
+    create_session
 )
 
 _PYDANTIC_2_0 = packaging.version.parse(
@@ -55,7 +51,7 @@ asset_xpr = re.compile(
 class URLBase(BaseModel):  # pylint: disable = R0903
     """Base model for responses."""
 
-    expiry: datetime = Field(alias="expiry")
+    expiry: datetime
 
     class Config:  # pylint: disable = R0903
         """Config for URLBase model."""
@@ -70,7 +66,7 @@ class URLBase(BaseModel):  # pylint: disable = R0903
 class SignedURL(URLBase):  # pylint: disable = R0903
     """Signed URL response."""
 
-    href: str = Field(alias="href")
+    href: str
 
     def ttl(self) -> float:
         """Return the number of seconds the token is still valid for."""
@@ -80,7 +76,7 @@ class SignedURL(URLBase):  # pylint: disable = R0903
 class SignedURLBatch(URLBase):  # pylint: disable = R0903
     """Signed URLs (batch of URLs) response."""
 
-    hrefs: dict = Field(alias="hrefs")
+    hrefs: dict
 
 
 # Cache of signing requests so we can reuse them
@@ -154,7 +150,10 @@ def sign_string(url: str, copy: bool = True) -> str:
     return sign_urls(urls=[url])[url]
 
 
-def sign_urls(urls: List[str]) -> Dict[str, str]:
+def _generic_sign_urls(
+        urls: List[str],
+        route: str
+) -> Dict[str, str]:
     """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.
@@ -165,6 +164,7 @@ def sign_urls(urls: List[str]) -> Dict[str, str]:
             Single URLs can be found on a STAC Item's Asset ``href`` value.
             Only URLs to assets in S3 Storage are signed, other URLs are
             returned unmodified.
+        route: API route
 
     Returns:
         dict of signed HREF: key = original URL, value = signed URL
@@ -193,9 +193,28 @@ def sign_urls(urls: List[str]) -> Dict[str, str]:
     not_signed_urls = [url for url in urls if url not in signed_urls]
     signed_urls.update({
         url: signed_url.href
-        for url, signed_url in get_signed_urls(not_signed_urls).items()
+        for url, signed_url in _generic_get_signed_urls(
+            urls=not_signed_urls,
+            route=route
+        ).items()
     })
     return signed_urls
+
+
+def sign_urls(urls: List[str]) -> Dict[str, str]:
+    """Sign multiple URLs for get."""
+    return _generic_sign_urls(urls=urls, route="sign_urls")
+
+
+def sign_urls_put(urls: List[str]) -> Dict[str, str]:
+    """Sign multiple URLs for put."""
+    return _generic_sign_urls(urls=urls, route="sign_urls_put")
+
+
+def sign_url_put(url: str) -> str:
+    """Sign a single URL for put."""
+    urls = sign_urls_put([url])
+    return urls[url]
 
 
 def _repl_vrt(match: re.Match) -> str:
@@ -204,7 +223,8 @@ def _repl_vrt(match: re.Match) -> str:
     return sign_urls(url)[url]
 
 
-def sign_vrt_string(vrt: str, copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
+def sign_vrt_string(vrt: str,
+                    copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
     """Sign a VRT-like string containing URLs from the storage.
 
     Signing URLs allows read access to files in storage.
@@ -413,8 +433,9 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
 sign_reference_file = sign_mapping
 
 
-def get_signed_urls(
+def _generic_get_signed_urls(
         urls: List[str],
+        route: str,
         retry_total: int = 10,
         retry_backoff_factor: float = .8
 ) -> Dict[str, SignedURL]:
@@ -426,6 +447,7 @@ def get_signed_urls(
 
     Args:
         urls: urls
+        route: route (API)
         retry_total (int): The number of allowable retry attempts for REST API
             calls. Use retry_total=0 to disable retries. A backoff factor to
             apply between attempts.
@@ -452,8 +474,8 @@ def get_signed_urls(
             "dinamis-secret-key": CREDENTIALS.secret_key
         })
         log.debug("Using credentials (access/secret keys)")
-    elif BYPASS_API:
-        log.debug("Using bypass API %s", BYPASS_API)
+    elif settings.dinamis_sdk_bypass_api:
+        log.debug("Using bypass API %s", settings.dinamis_sdk_bypass_api)
     else:
         from .auth import get_access_token
         access_token = get_access_token()
@@ -468,27 +490,25 @@ def get_signed_urls(
             log.debug("URL %s already in cache", url)
             ttl = signed_url_in_cache.ttl()
             log.debug("URL %s TTL is %s", url, ttl)
-            if ttl > SIGNED_URL_TTL_MARGIN:
-                log.debug("Using cache (%s > %s)", ttl, SIGNED_URL_TTL_MARGIN)
+            if ttl > settings.dinamis_sdk_ttl_margin:
+                log.debug(
+                    "Using cache (%s > %s)",
+                    ttl,
+                    settings.dinamis_sdk_ttl_margin
+                )
                 signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
     log.debug("Already signed URLs:\n %s", signed_urls)
     log.debug("Not signed URLs:\n %s", not_signed_urls)
 
     if not_signed_urls:
-        # Refresh the token if there's less than SIGNED_URL_TTL_MARGIN seconds
-        # remaining, in order to give a small amount of time to do stuff with
-        # the url
-        session = requests.Session()
-        retry = urllib3.util.retry.Retry(
-            total=retry_total,
-            backoff_factor=retry_backoff_factor,
-            status_forcelist=[404, 429, 500, 502, 503, 504],
-            allowed_methods=False,
+        # Refresh the token if there's less than
+        # `settings.dinamis_sdk_ttl_margin seconds` remaining, in order to
+        # give a small amount of time to do stuff with the url
+        session = create_session(
+            retry_backoff_factor=retry_backoff_factor,
+            retry_total=retry_total
         )
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
         n_urls = len(not_signed_urls)
         log.debug("Number of URLs to sign: %s", n_urls)
         n_chunks = math.ceil(n_urls / MAX_URLS)
@@ -499,10 +519,12 @@ def get_signed_urls(
             chunk_end = min(chunk_start + MAX_URLS, n_urls)
             not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
             params = {"urls": not_signed_urls_chunk}
-            if SIGNED_URL_DURATION_SECONDS:
-                params["duration_seconds"] = SIGNED_URL_DURATION_SECONDS
+            if settings.dinamis_sdk_url_duration:
+                params["duration_seconds"] = settings.dinamis_sdk_url_duration
+            post_url = f"{S3_SIGNING_ENDPOINT}{route}"
+            log.debug("POST %s", post_url)
             response = session.post(
-                f"{S3_SIGNING_ENDPOINT}sign_urls",
+                post_url,
                 params=params,
                 headers=headers,
                 timeout=10

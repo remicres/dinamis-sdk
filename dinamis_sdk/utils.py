@@ -5,38 +5,24 @@ import os
 import appdirs
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
 import requests
+import urllib3.util.retry
+from .settings import Settings
 
-# Env vars
-ENV_TTL_MARGIN = "DINAMIS_SDK_TTL_MARGIN"
-ENV_DURATION_SECS = "DINAMIS_SDK_DURATION_SECONDS"
-ENV_BYPASS_API = "DINAMIS_SDK_BYPASS_API"
+# Settings
+settings = Settings()
 
-logging.basicConfig(level=os.environ.get("LOGLEVEL") or "INFO")
+# Logger
+logging.basicConfig()
 log = logging.getLogger("dinamis_sdk")
+log.setLevel(level=os.environ.get('LOGLEVEL', 'INFO').upper())
 
-
-def _get_seconds(env_var_name: str, default: int = None) -> int:
-    val = os.environ.get(env_var_name)
-    if val:
-        if val.isdigit():
-            log.info(
-                "Using %s = %s seconds",
-                env_var_name,
-                val
-            )           
-        return int(val)
-    return default
-
-
-# Signed TTL margin default to 1800 seconds (30 minutes), or env. var.
-SIGNED_URL_TTL_MARGIN = _get_seconds(ENV_TTL_MARGIN, 1800)
-SIGNED_URL_DURATION_SECONDS = _get_seconds(ENV_DURATION_SECS)
-
+# Constants
 MAX_URLS = 64
 S3_STORAGE_DOMAIN = "meso.umontpellier.fr"
 S3_SIGNING_ENDPOINT = \
     "https://s3-signing-cdos.apps.okd.crocc.meso.umontpellier.fr/"
 
+# Config path
 CFG_PTH = appdirs.user_config_dir(appname='dinamis_sdk_auth')
 if not os.path.exists(CFG_PTH):
     try:
@@ -48,9 +34,11 @@ if not os.path.exists(CFG_PTH):
 else:
     log.debug("Config path already exist in %s", CFG_PTH)
 
+# JWT File
 JWT_FILE = os.path.join(CFG_PTH, ".token") if CFG_PTH else None
 log.debug("JWT file is %s", JWT_FILE)
 
+# Settings file
 settings_file = os.path.join(CFG_PTH, ".settings") if CFG_PTH else None
 log.debug("Settings file is %s", settings_file)
 
@@ -85,16 +73,33 @@ def retrieve_token_endpoint(s3_signing_endpoint: str = S3_SIGNING_ENDPOINT):
     return oauth2_defs["flows"]["password"]["tokenUrl"]
 
 
-BYPASS_API = os.environ.get(ENV_BYPASS_API)
-if BYPASS_API:
-    S3_SIGNING_ENDPOINT = BYPASS_API
+if settings.dinamis_sdk_bypass_api:
+    S3_SIGNING_ENDPOINT = settings.dinamis_sdk_bypass_api
 
 # Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
 # .crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect/token
-TOKEN_ENDPOINT = None if BYPASS_API else retrieve_token_endpoint()
+TOKEN_ENDPOINT = None if settings.dinamis_sdk_bypass_api \
+    else retrieve_token_endpoint()
 # Auth base URL is typically something like: https://keycloak-dinamis.apps.okd.
 # crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect
-AUTH_BASE_URL = None if BYPASS_API else TOKEN_ENDPOINT.rsplit('/', 1)[0]
+AUTH_BASE_URL = None if settings.dinamis_sdk_bypass_api \
+    else TOKEN_ENDPOINT.rsplit('/', 1)[0]
 
-# Token server (optional)
-TOKEN_SERVER = os.environ.get("DINAMIS_SDK_TOKEN_SERVER")
+
+def create_session(
+        retry_total: int = 5,
+        retry_backoff_factor: float = .8
+):
+    """Create a session for requests."""
+    session = requests.Session()
+    retry = urllib3.util.retry.Retry(
+        total=retry_total,
+        backoff_factor=retry_backoff_factor,
+        status_forcelist=[404, 429, 500, 502, 503, 504],
+        allowed_methods=False,
+    )
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    return session

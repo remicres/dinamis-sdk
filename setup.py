@@ -7,12 +7,13 @@ install_requires = [
     "pystac",
     "pystac_client",
     "pydantic>=1.7.3",
+    "pydantic_settings",
     "packaging"
 ]
 
 setup(
     name="dinamis-sdk",
-    version="0.1.13",
+    version="0.2.0",
     description="DINAMIS SDK",
     python_requires=">=3.8",
     author="Remi Cresson",
