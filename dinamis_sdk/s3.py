@@ -39,12 +39,9 @@ _PYDANTIC_2_0 = packaging.version.parse(
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
-# todo: fix the expression
 asset_xpr = re.compile(
-    r"https://(?P<account>[A-z0-9]+?)"
-    r"\.minio-dinamis\.apps\.okd\.crocc\.meso\.umontpellier\.fr/"
-    r"(?P<container>.+?)"
-    r"/(?P<blob>[^<]+)"
+    r"https:\/\/(?P<account>[A-z0-9-.]+?)"
+    r"\.meso\.umontpellier\.fr\/(?P<blob>[^<]+)"
 )
 
 
@@ -217,12 +214,6 @@ def sign_url_put(url: str) -> str:
     return urls[url]
 
 
-def _repl_vrt(match: re.Match) -> str:
-    # replace all blob-storages URLs with a signed version.
-    url = match.string[slice(*match.span())]
-    return sign_urls(url)[url]
-
-
 def sign_vrt_string(vrt: str,
                     copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
     """Sign a VRT-like string containing URLs from the storage.
@@ -242,7 +233,22 @@ def sign_vrt_string(vrt: str,
         str: The signed VRT
 
     """
-    return asset_xpr.sub(_repl_vrt, vrt)
+    urls = []
+
+    def _repl_vrt(m: re.Match) -> str:
+        urls.append(m.string[slice(*m.span())])
+
+    asset_xpr.sub(_repl_vrt, vrt)
+    signed_urls = sign_urls(urls)
+
+    # The "&" needs to be encoded in signed URLs inside the .vrt
+    for url, signed_url in signed_urls.items():
+        signed_urls[url] = signed_url.replace("&", "&Amp;")
+
+    # Replace urls with signed urls (single pass)
+    rep = dict((re.escape(k), v) for k, v in signed_urls.items())
+    pattern = re.compile("|".join(rep.keys()))
+    return pattern.sub(lambda m: rep[re.escape(m.group(0))], vrt)
 
 
 @sign.register(Item)
