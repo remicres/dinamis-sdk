@@ -39,7 +39,6 @@ _PYDANTIC_2_0 = packaging.version.parse(
 
 AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
-# todo: fix the expression
 asset_xpr = re.compile(
     r"https:\/\/(?P<account>[A-z0-9-.]+?)"
     r"\.meso\.umontpellier\.fr\/(?P<blob>[^<]+)"
