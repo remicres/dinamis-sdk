@@ -2,7 +2,7 @@
 
 ## DINAMIS prototype Open APIs
 
-- [STAC API swagger UI](https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr/api.html)
+- [STAC API swagger UI](https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr/api.html)
 - [URL signing API swagger UI](https://s3-signing-dinamis.apps.okd.crocc.meso.umontpellier.fr/docs)
 
 ## STAC documentation

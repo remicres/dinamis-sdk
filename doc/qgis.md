@@ -14,7 +14,7 @@ from pystac_client import Client
 from dinamis_sdk import sign_inplace
 
 api = Client.open(
-    'https://stacapi-dinamis.apps.okd.crocc.meso.umontpellier.fr', 
+    'https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr', 
     modifier=sign_inplace
 )
 ```
