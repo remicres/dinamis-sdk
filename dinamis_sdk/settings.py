@@ -9,3 +9,4 @@ class Settings(BaseSettings):
     dinamis_sdk_url_duration: int = 0
     dinamis_sdk_bypass_api: str = ""
     dinamis_sdk_token_server: str = ""
+    dinamis_sdk_settings_dir: str = ""

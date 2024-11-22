@@ -9,8 +9,8 @@ workflow:
 stages:
   - Static Analysis
   - Install
-  - Documentation
   - Test
+  - Documentation
   - Ship
 
 # ------------------------------ Static analysis ------------------------------
@@ -77,14 +77,26 @@ pages:
 
 # --------------------------------- Test --------------------------------------
 
-Tests:
+.tests_base:
   stage: Test
   except:
     - main
   before_script:
     - pip install .
     - pip install pystac-client
+
+
+OAuth2 Tests:
+  extends: .tests_base
   script:
+    - python tests/test_spot-6-7-drs.py
+    - python tests/test_super-s2.py
+    - python tests/test_push.py
+
+API key Tests:
+  extends: .tests_base
+  script:
+    - dinamis_cli register
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py

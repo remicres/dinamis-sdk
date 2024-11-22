@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dinamis-sdk"
+authors = [{name = "inrae", email = "remi.cresson@inrae.fr"}]
+version = "0.3.0"
+description = "DINAMIS SDK for Python"
+requires-python = ">=3.7"
+dependencies = [
+    "click>=7.1",
+    "pydantic>=1.7.3",
+    "pystac>=1.0.0",
+    "pystac-client>=0.2.0",
+    "requests>=2.25.1",
+    "packaging",
+    "qrcode",
+    "appdirs",
+    "pydantic_settings",
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+
+[project.scripts]
+dinamis_cli = "dinamis_sdk.cli:app"
+
+[tool.setuptools]
+include-package-data = false

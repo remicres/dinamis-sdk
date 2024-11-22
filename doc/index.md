@@ -30,13 +30,16 @@ pip install dinamis-sdk
 
 ## Quickstart
 
-This library assists with signing STAC items assets URLs from the DINAMIS SDI
-prototype. The `sign` function operates directly on an HREF string, as well as 
-several [PySTAC](https://github.com/stac-utils/pystac) objects: `Asset`, 
-`Item`, and `ItemCollection`. In addition, the `sign` function accepts a 
-[STAC API Client](https://pystac-client.readthedocs.io/en/stable/) 
+This library assists with signing STAC items assets URLs from the THEIA-MTP 
+Geospatial Data Infrastructure.
+The `sign_inplace` function operates directly on an HREF string, as well as 
+several [PySTAC](https://github.com/stac-utils/pystac) objects: `Asset`, `Item`, and `ItemCollection`. 
+In addition, the `sign_inplace` function accepts a [STAC API Client](https://pystac-client.readthedocs.io/en/stable/) 
 `ItemSearch`, which performs a search and returns the resulting 
 `ItemCollection` with all assets signed.
+`sign_inplace()` can be used as a `modifier` in `pystac_client.Client` 
+instances, as shown in the example below. Alternatively, `sign()` can be used 
+to sign a single url.
 
 ```python
 import dinamis_sdk
@@ -49,8 +52,7 @@ api = pystac_client.Client.open(
 ```
 
 Follow the instructions to authenticate.
-Read the [credentials section](credentials) to know more about credential
-expiry.
+Read the [credentials section](credentials) to know more about credentials.
 
 ## Contribute
 
