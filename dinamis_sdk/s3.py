@@ -26,11 +26,11 @@ import pydantic
 from .utils import (
     log,
     settings,
-    CREDENTIALS,
     MAX_URLS,
     S3_SIGNING_ENDPOINT,
     S3_STORAGE_DOMAIN,
-    create_session
+    create_session,
+    APIKEY
 )
 
 _PYDANTIC_2_0 = packaging.version.parse(
@@ -474,12 +474,9 @@ def _generic_get_signed_urls(
         "Content-Type": "application/json",
         "Accept": "application/json"
     }
-    if CREDENTIALS:
-        headers.update({
-            "dinamis-access-key": CREDENTIALS.access_key,
-            "dinamis-secret-key": CREDENTIALS.secret_key
-        })
-        log.debug("Using credentials (access/secret keys)")
+    if APIKEY:
+        headers.update(APIKEY)
+        log.debug("Using API key")
     elif settings.dinamis_sdk_bypass_api:
         log.debug("Using bypass API %s", settings.dinamis_sdk_bypass_api)
     else:
