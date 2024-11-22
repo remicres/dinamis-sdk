@@ -82,7 +82,7 @@ OAuth2 Tests:
   except:
     - main
   before_script:
-    - pip install .
+    - pip install ./dinamis_sdk
     - pip install pystac-client
   script:
     - python tests/test_spot-6-7-drs.py
@@ -94,7 +94,7 @@ API key Tests:
   except:
     - main
   before_script:
-    - pip install .
+    - pip install ./dinamis_sdk
     - pip install pystac-client
   script:
     - dinamis_cli register
