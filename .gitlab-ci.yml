@@ -77,7 +77,7 @@ pages:
 
 # --------------------------------- Test --------------------------------------
 
-Tests:
+OAuth2 Tests:
   stage: Test
   except:
     - main
@@ -85,6 +85,19 @@ Tests:
     - pip install .
     - pip install pystac-client
   script:
+    - python tests/test_spot-6-7-drs.py
+    - python tests/test_super-s2.py
+    - python tests/test_push.py
+
+API key Tests:
+  stage: Test
+  except:
+    - main
+  before_script:
+    - pip install .
+    - pip install pystac-client
+  script:
+    - dinamis_cli register
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py
