@@ -9,8 +9,8 @@ workflow:
 stages:
   - Static Analysis
   - Install
-  - Documentation
   - Test
+  - Documentation
   - Ship
 
 # ------------------------------ Static analysis ------------------------------
@@ -82,7 +82,7 @@ pages:
   except:
     - main
   before_script:
-    - pip install $PWD/dinamis_sdk
+    - pip install .
     - pip install pystac-client
 
 
