@@ -1,3 +1,4 @@
+"""Dinamis Command Line Interface."""
 import click
 from .utils import APIKEY_FILE, create_session, S3_SIGNING_ENDPOINT, log
 from .auth import get_access_token

@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import appdirs
-from pydantic import BaseModel  # pylint: disable = no-name-in-module
 import requests
 import urllib3.util.retry
 from .settings import Settings
