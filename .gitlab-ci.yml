@@ -77,25 +77,24 @@ pages:
 
 # --------------------------------- Test --------------------------------------
 
-OAuth2 Tests:
+.tests_base:
   stage: Test
   except:
     - main
   before_script:
-    - pip install ./dinamis_sdk
+    - pip install $PWD/dinamis_sdk
     - pip install pystac-client
+
+
+OAuth2 Tests:
+  extends: .tests_base
   script:
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py
 
 API key Tests:
-  stage: Test
-  except:
-    - main
-  before_script:
-    - pip install ./dinamis_sdk
-    - pip install pystac-client
+  extends: .tests_base
   script:
     - dinamis_cli register
     - python tests/test_spot-6-7-drs.py
