@@ -10,8 +10,8 @@ stages:
   - Static Analysis
   - Install
   - Test
-  - Documentation
   - Ship
+  - Documentation
 
 # ------------------------------ Static analysis ------------------------------
 
