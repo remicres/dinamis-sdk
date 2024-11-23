@@ -119,7 +119,7 @@ class DeviceGrant(GrantMethodBase):
             response = DeviceGrantResponse(**ret.json())
             verif_url_comp = response.verification_uri_complete
             log.info("Open the following URL in your browser to grant access:")
-            log.info("\033[92m%s\033[0m", verif_url_comp)
+            log.info("\033[92m %s \033[0m", verif_url_comp)
 
             # QR code
             qr_code = qrcode.QRCode()
