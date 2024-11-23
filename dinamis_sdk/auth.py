@@ -197,6 +197,9 @@ class OAuth2Session:
         log.debug("access_token_ttl is %s", access_token_ttl_seconds)
         if access_token_ttl_seconds >= ttl_margin_seconds:
             # Token is still valid
+            log.debug(
+                "Credentials from %s still valid", JWT_FILE
+            )
             return
         if access_token_ttl_seconds < ttl_margin_seconds:
             # Access token in not valid, but refresh might be
@@ -221,13 +224,7 @@ class OAuth2Session:
                 log.debug("Trying to grab credentials from %s", JWT_FILE)
                 try:
                     with open(JWT_FILE, encoding='UTF-8') as json_file:
-                        self.jwt = self.grant.refresh_token(
-                            JWT(**json.load(json_file))
-                        )
-                        if self.jwt:
-                            log.debug(
-                                "Credentials from %s still valid", JWT_FILE
-                            )
+                        self.jwt = JWT(**json.load(json_file))
                 except FileNotFoundError as error:
                     log.warning(
                         "Warning: can't use token from file %s (%s)",
