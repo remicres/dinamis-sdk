@@ -52,7 +52,11 @@ if APIKEY_FILE and os.path.isfile(APIKEY_FILE):
     except json.decoder.JSONDecodeError:
         log.warning("Stored API key file is invalid. Deleting it.")
         os.remove(APIKEY_FILE)
-
+if settings.dinamis_sdk_access_key and settings.dinamis_sdk_secret_key:
+    APIKEY = {
+        "access-key": settings.dinamis_sdk_access_key,
+        "secret-key": settings.dinamis_sdk_secret_key
+    }
 
 def create_session(
         retry_total: int = 5,

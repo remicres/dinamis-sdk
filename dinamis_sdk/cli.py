@@ -64,14 +64,10 @@ def revoke_all():
 
 
 @app.command(help="Revoke an API key")
-@click.option(
-    "--key",
-    prompt="Please enter the access key to revoke",
-    help="Access key to revoke",
-)
-def revoke(key: str):
+@click.argument("access_key")
+def revoke(access_key: str):
     """Revoke an API key."""
-    revoke_key(key)
+    revoke_key(access_key)
 
 
 @app.command(help="Get and store an API key")
@@ -83,9 +79,15 @@ def register():
 
 
 @app.command(help="Delete the stored API key")
-def delete():
+@click.option("--dont-revoke", default=False)
+def delete(dont_revoke):
     """Delete the stored API key."""
     if os.path.isfile(APIKEY_FILE):
+        if not dont_revoke:
+            with open(APIKEY_FILE, encoding='UTF-8') as json_file:
+                api_key = json.load(json_file)
+                if "access-key" in api_key:
+                    revoke_key(api_key["access-key"])
         os.remove(APIKEY_FILE)
         log.info(f"File {APIKEY_FILE} deleted!")
     else:
