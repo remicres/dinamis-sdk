@@ -97,9 +97,19 @@ API key Tests:
   extends: .tests_base
   script:
     - dinamis_cli register
+    - mv /root/.config/dinamis_sdk_auth/.token /root/.config/dinamis_sdk_auth/.token_
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py
+    - mv /root/.config/dinamis_sdk_auth/.token_ /root/.config/dinamis_sdk_auth/.token
+    - dinamis_cli delete
+    - toto=$(dinamis_cli create 2>&1)
+    - mv /root/.config/dinamis_sdk_auth/.token /root/.config/dinamis_sdk_auth/.token_
+    - export DINAMIS_SDK_ACCESS_KEY=$(echo $toto | cut -d"'" -f4)
+    - export DINAMIS_SDK_SECRET_KEY=$(echo $toto | cut -d"'" -f8)
+    - python tests/test_spot-6-7-drs.py
+    - mv /root/.config/dinamis_sdk_auth/.token_ /root/.config/dinamis_sdk_auth/.token
+    - dinamis_sdk revoke $DINAMIS_SDK_ACCESS_KEY
 
 # --------------------------------- Ship --------------------------------------
 
