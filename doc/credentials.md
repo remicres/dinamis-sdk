@@ -35,6 +35,10 @@ You can delete the API key any time with:
 dinamis_cli delete
 ```
 
+You can revoke a single API key using ```dinamis_cli revoke``` or all API keys 
+with ```dinamis_sdk revoke-all```. You can create new API key with 
+```dinamis_sdk create```.
+
 ## Signed URLs expiry
 
 The signed URLs for STAC objects assets are valid during 7 days starting after 
