@@ -30,8 +30,8 @@ pip install dinamis-sdk
 
 ## Quickstart
 
-This library assists with signing STAC items assets URLs from the THEIA-MTP 
-Geospatial Data Infrastructure.
+This library assists with signing STAC items assets URLs from the [THEIA-MTP 
+geospatial data center](https://home-cdos.apps.okd.crocc.meso.umontpellier.fr/).
 The `sign_inplace` function operates directly on an HREF string, as well as 
 several [PySTAC](https://github.com/stac-utils/pystac) objects: `Asset`, `Item`, and `ItemCollection`. 
 In addition, the `sign_inplace` function accepts a [STAC API Client](https://pystac-client.readthedocs.io/en/stable/) 

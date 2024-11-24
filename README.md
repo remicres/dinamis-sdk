@@ -11,9 +11,9 @@
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
 </a>
 
-Largely inspired from *Microsoft Planetary Computer SDK*, **Dinamis-SDK** is 
-built on the STAC ecosystem to provide an easy access to remote sensing imagery
-and thematic products of the **THEIA/DINAMIS data center of Montpellier**.
+Largely inspired from the *Microsoft Planetary Computer SDK*, **Dinamis-SDK** is 
+built on the STAC ecosystem to provide easy access to remote sensing imagery
+and thematic products of the [THEIA-MTP geospatial data center](https://home-cdos.apps.okd.crocc.meso.umontpellier.fr/).
 
 ```python
 import dinamis_sdk
