@@ -10,3 +10,5 @@ class Settings(BaseSettings):
     dinamis_sdk_bypass_api: str = ""
     dinamis_sdk_token_server: str = ""
     dinamis_sdk_settings_dir: str = ""
+    dinamis_sdk_access_key: str = ""
+    dinamis_sdk_secret_key: str = ""
