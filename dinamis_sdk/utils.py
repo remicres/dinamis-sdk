@@ -6,12 +6,13 @@ import appdirs
 import requests
 import urllib3.util.retry
 from .settings import Settings
+import sys
 
 # Settings
 settings = Settings()
 
 # Logger
-logging.basicConfig()
+logging.basicConfig(stream=sys.stdout)
 log = logging.getLogger("dinamis_sdk")
 log.setLevel(level=os.environ.get('LOGLEVEL', 'INFO').upper())
 

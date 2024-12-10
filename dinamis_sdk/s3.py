@@ -199,17 +199,17 @@ def _generic_sign_urls(
 
 
 def sign_urls(urls: List[str]) -> Dict[str, str]:
-    """Sign multiple URLs for get."""
+    """Sign multiple URLs for GET."""
     return _generic_sign_urls(urls=urls, route="sign_urls")
 
 
 def sign_urls_put(urls: List[str]) -> Dict[str, str]:
-    """Sign multiple URLs for put."""
+    """Sign multiple URLs for PUT."""
     return _generic_sign_urls(urls=urls, route="sign_urls_put")
 
 
 def sign_url_put(url: str) -> str:
-    """Sign a single URL for put."""
+    """Sign a single URL for PUT."""
     urls = sign_urls_put([url])
     return urls[url]
 
@@ -532,7 +532,11 @@ def _generic_get_signed_urls(
                 headers=headers,
                 timeout=10
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except Exception as e:
+                log.error(eval(response.content))
+                raise(e)
 
             signed_url_batch = SignedURLBatch(**response.json())
             if not signed_url_batch:
@@ -551,7 +555,9 @@ def _generic_get_signed_urls(
                     expiry=signed_url_batch.expiry,
                     href=href
                 )
-                CACHE[url] = signed_url
+                if route == "sign_urls":
+                    # Only put GET urls in cache
+                    CACHE[url] = signed_url
                 signed_urls[url] = signed_url
         log.debug(
             "Got signed urls %s in %s seconds",
