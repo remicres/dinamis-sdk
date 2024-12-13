@@ -4,3 +4,4 @@
 dinamis_sdk/test
 build
 dist
+*venv/

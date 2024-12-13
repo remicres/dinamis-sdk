@@ -1,17 +1,20 @@
 """TOA images mosaicing with pyotb."""
+
+# pylint: disable=duplicate-code
+
 from pystac_client import Client
-import pyotb
+import pyotb  # type: ignore
 from dinamis_sdk import sign_inplace
 
 api = Client.open(
-    'https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr',
-    modifier=sign_inplace
+    "https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr",
+    modifier=sign_inplace,
 )
 
 res = api.search(
     bbox=[4, 42.99, 5, 44.05],
     datetime=["2022-01-01", "2022-12-25"],
-    collections=["spot-6-7-drs"]
+    collections=["spot-6-7-drs"],
 )
 
 urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]

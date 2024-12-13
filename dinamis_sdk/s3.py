@@ -5,32 +5,42 @@ Revamp of Microsoft Planetary Computer SAS, using S3 and custom URL signing
 endpoint instead.
 
 """
+
 import collections.abc
+import math
 import re
 import time
+from ast import literal_eval
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import singledispatch
-from typing import Any, Dict, Mapping, TypeVar, cast, List
-from urllib.parse import urlparse, parse_qs
-import math
-from pydantic import BaseModel  # pylint: disable = no-name-in-module
-from pystac import Asset, Item, ItemCollection, STACObjectType, Collection
-from pystac.serialization.identify import identify_stac_object_type
-from pystac.utils import datetime_to_str
-import pystac_client
-from pystac_client import ItemSearch
+from typing import Any, Dict, List, Mapping, TypeVar, cast
+from urllib.parse import parse_qs, urlparse
+
 import packaging.version
 import pydantic
+import pystac_client
+from pydantic import BaseModel  # pylint: disable = no-name-in-module
+from pystac import (
+    Asset,
+    Collection,
+    Item,
+    ItemCollection,
+    STACObjectType,
+)
+from pystac.serialization.identify import identify_stac_object_type
+from pystac.utils import datetime_to_str
+from pystac_client import ItemSearch
 
+from .auth import get_access_token
 from .utils import (
-    log,
-    settings,
+    APIKEY,
     MAX_URLS,
     S3_SIGNING_ENDPOINT,
     S3_STORAGE_DOMAIN,
     create_session,
-    APIKEY
+    log,
+    settings,
 )
 
 _PYDANTIC_2_0 = packaging.version.parse(
@@ -41,7 +51,7 @@ AssetLike = TypeVar("AssetLike", Asset, Dict[str, Any])
 
 asset_xpr = re.compile(
     r"https:\/\/(?P<account>[A-z0-9-.]+?)"
-    r"\.meso\.umontpellier\.fr\/(?P<blob>[^<]+)"
+    r"\.meso\.umontpellier\.fr\/(?P<blob>[^<]+)"  # ignore
 )
 
 
@@ -115,8 +125,9 @@ def sign_inplace(obj: Any) -> Any:
 
 def is_vrt_string(string: str) -> bool:
     """Check whether a string looks like a VRT."""
-    return string.strip().startswith("<VRTDataset") and \
-        string.strip().endswith("</VRTDataset>")
+    return string.strip().startswith("<VRTDataset") and string.strip().endswith(
+        "</VRTDataset>"
+    )
 
 
 @sign.register(str)
@@ -147,10 +158,7 @@ def sign_string(url: str, copy: bool = True) -> str:
     return sign_urls(urls=[url])[url]
 
 
-def _generic_sign_urls(
-        urls: List[str],
-        route: str
-) -> Dict[str, str]:
+def _generic_sign_urls(urls: List[str], route: str) -> Dict[str, str]:
     """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.
@@ -182,19 +190,20 @@ def _generic_sign_urls(
             if set(parsed_qs) & {
                 "X-Amz-Security-Token",
                 "X-Amz-Signature",
-                "X-Amz-Credential"
+                "X-Amz-Credential",
             }:
                 #  looks like we've already signed it
                 signed_urls[url] = url
 
     not_signed_urls = [url for url in urls if url not in signed_urls]
-    signed_urls.update({
-        url: signed_url.href
-        for url, signed_url in _generic_get_signed_urls(
-            urls=not_signed_urls,
-            route=route
-        ).items()
-    })
+    signed_urls.update(
+        {
+            url: signed_url.href
+            for url, signed_url in _generic_get_signed_urls(
+                urls=not_signed_urls, route=route
+            ).items()
+        }
+    )
     return signed_urls
 
 
@@ -214,8 +223,7 @@ def sign_url_put(url: str) -> str:
     return urls[url]
 
 
-def sign_vrt_string(vrt: str,
-                    copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
+def sign_vrt_string(vrt: str, copy: bool = True) -> str:  # pylint: disable = W0613  # noqa: E501
     """Sign a VRT-like string containing URLs from the storage.
 
     Signing URLs allows read access to files in storage.
@@ -235,7 +243,7 @@ def sign_vrt_string(vrt: str,
     """
     urls = []
 
-    def _repl_vrt(m: re.Match) -> str:
+    def _repl_vrt(m: re.Match):
         urls.append(m.string[slice(*m.span())])
 
     asset_xpr.sub(_repl_vrt, vrt)
@@ -296,7 +304,7 @@ def sign_asset(asset: Asset, copy: bool = True) -> Asset:
 
 @sign.register(ItemCollection)
 def sign_item_collection(
-        item_collection: ItemCollection, copy: bool = True
+    item_collection: ItemCollection, copy: bool = True
 ) -> ItemCollection:
     """Sign a PySTAC item collection.
 
@@ -315,11 +323,7 @@ def sign_item_collection(
     """
     if copy:
         item_collection = item_collection.clone()
-    urls = [
-        asset.href
-        for item in item_collection
-        for asset in item.assets.values()
-    ]
+    urls = [asset.href for item in item_collection for asset in item.assets.values()]
     signed_urls = sign_urls(urls=urls)
     for item in item_collection:
         for key, asset in item.assets.items():
@@ -371,10 +375,7 @@ def sign_collection(collection: Collection, copy: bool = True) -> Collection:
         if assets and not collection.assets:
             collection.assets = deepcopy(assets)
 
-    urls = [
-        collection.assets[key].href
-        for key in collection.assets
-    ]
+    urls = [collection.assets[key].href for key in collection.assets]
     signed_urls = sign_urls(urls=urls)
     for key, asset in collection.assets.items():
         collection.assets[key].href = signed_urls[asset.href]
@@ -420,8 +421,7 @@ def sign_mapping(mapping: Mapping, copy: bool = True) -> Mapping:
             url = val["href"]
             val["href"] = signed_urls[url]
 
-    elif mapping.get("type") == "FeatureCollection" and \
-            mapping.get("features"):
+    elif mapping.get("type") == "FeatureCollection" and mapping.get("features"):
         urls = [
             val["href"]
             for feat in mapping["features"]
@@ -440,10 +440,10 @@ sign_reference_file = sign_mapping
 
 
 def _generic_get_signed_urls(
-        urls: List[str],
-        route: str,
-        retry_total: int = 10,
-        retry_backoff_factor: float = .8
+    urls: List[str],
+    route: str,
+    retry_total: int = 10,
+    retry_backoff_factor: float = 0.8,
 ) -> Dict[str, SignedURL]:
     """
     Get multiple signed URLs.
@@ -468,11 +468,14 @@ def _generic_get_signed_urls(
     Returns:
         SignedURL: the signed URL
     """
+    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches
     log.debug("Get signed URLs for %s", urls)
     start_time = time.time()
     headers = {
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
     }
     if APIKEY:
         headers.update(APIKEY)
@@ -480,11 +483,12 @@ def _generic_get_signed_urls(
     elif settings.dinamis_sdk_bypass_api:
         log.debug("Using bypass API %s", settings.dinamis_sdk_bypass_api)
     else:
-        from .auth import get_access_token
         access_token = get_access_token()
         headers.update({"Authorization": f"Bearer {access_token}"})
         log.debug(
-            "Access token: %s...%s", access_token[:8], access_token[-8:]
+            "Access token: %s...%s",
+            access_token[:8],
+            access_token[-8:],
         )
     signed_urls = {}
     for url in urls:
@@ -497,7 +501,7 @@ def _generic_get_signed_urls(
                 log.debug(
                     "Using cache (%s > %s)",
                     ttl,
-                    settings.dinamis_sdk_ttl_margin
+                    settings.dinamis_sdk_ttl_margin,
                 )
                 signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
@@ -510,7 +514,7 @@ def _generic_get_signed_urls(
         # give a small amount of time to do stuff with the url
         session = create_session(
             retry_backoff_factor=retry_backoff_factor,
-            retry_total=retry_total
+            retry_total=retry_total,
         )
         n_urls = len(not_signed_urls)
         log.debug("Number of URLs to sign: %s", n_urls)
@@ -521,40 +525,33 @@ def _generic_get_signed_urls(
             chunk_start = i_chunk * MAX_URLS
             chunk_end = min(chunk_start + MAX_URLS, n_urls)
             not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
-            params = {"urls": not_signed_urls_chunk}
+            params: Dict[str, Any] = {"urls": not_signed_urls_chunk}
             if settings.dinamis_sdk_url_duration:
                 params["duration_seconds"] = settings.dinamis_sdk_url_duration
             post_url = f"{S3_SIGNING_ENDPOINT}{route}"
             log.debug("POST %s", post_url)
             response = session.post(
-                post_url,
-                params=params,
-                headers=headers,
-                timeout=10
+                post_url, params=params, headers=headers, timeout=10
             )
             try:
                 response.raise_for_status()
             except Exception as e:
-                log.error(eval(response.content))
-                raise(e)
+                log.error(literal_eval(response.content))
+                raise e
 
             signed_url_batch = SignedURLBatch(**response.json())
             if not signed_url_batch:
                 raise ValueError(
                     f"No signed url batch found in response: {response.json()}"
                 )
-            if not all(key in signed_url_batch.hrefs
-                       for key in not_signed_urls_chunk):
+            if not all(key in signed_url_batch.hrefs for key in not_signed_urls_chunk):
                 raise ValueError(
                     f"URLs to sign are {not_signed_urls_chunk} but returned "
                     f"signed URLs"
                     f"are for {signed_url_batch.hrefs.keys()}"
                 )
             for url, href in signed_url_batch.hrefs.items():
-                signed_url = SignedURL(
-                    expiry=signed_url_batch.expiry,
-                    href=href
-                )
+                signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
                 if route == "sign_urls":
                     # Only put GET urls in cache
                     CACHE[url] = signed_url
@@ -562,7 +559,7 @@ def _generic_get_signed_urls(
         log.debug(
             "Got signed urls %s in %s seconds",
             signed_urls,
-            f"{time.time() - start_time:.2f}"
+            f"{time.time() - start_time:.2f}",
         )
 
     return signed_urls

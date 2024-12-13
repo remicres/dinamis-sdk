@@ -1,11 +1,12 @@
 """NDVI loss example with pyotb."""
+
 from pystac_client import Client
-import pyotb
+import pyotb  # type: ignore
 from dinamis_sdk import sign_inplace
 
 api = Client.open(
-    'https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr',
-    modifier=sign_inplace
+    "https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr",
+    modifier=sign_inplace,
 )
 
 
@@ -14,7 +15,7 @@ def mosa(year):
     res = api.search(
         bbox=[4, 42.99, 5, 44.05],
         datetime=[f"{year}-01-01", f"{year}-12-25"],
-        collections=["spot-6-7-drs"]
+        collections=["spot-6-7-drs"],
     )
     urls = [f"/vsicurl/{r.assets['src_xs'].href}" for r in res.items()]
     return pyotb.Mosaic({"il": urls})

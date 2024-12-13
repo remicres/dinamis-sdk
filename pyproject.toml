@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dinamis-sdk"
 authors = [{name = "inrae", email = "remi.cresson@inrae.fr"}]
-version = "0.3.3"
+version = "0.3.4"
 description = "DINAMIS SDK for Python"
 requires-python = ">=3.7"
 dependencies = [
+    "setuptools>=61.2",
     "click>=7.1",
     "pydantic>=1.7.3",
     "pystac>=1.0.0",
@@ -25,5 +26,13 @@ license = {file = "LICENSE"}
 [project.scripts]
 dinamis_cli = "dinamis_sdk.cli:app"
 
+[tool.mypy]
+show_error_codes = true
+pretty = true
+exclude = ["doc", "venv", ".venv"]
+
+[tool.pylint]
+disable = "W1203,R0903,E0401,W0622"
+
 [tool.setuptools]
-include-package-data = false
+packages = ["dinamis_sdk"]

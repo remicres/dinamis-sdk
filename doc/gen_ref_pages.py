@@ -22,4 +22,3 @@ for path in sorted(Path("dinamis_sdk").rglob("*.py")):  #
         print("::: " + identifier, file=fd)  #
 
     mkdocs_gen_files.set_edit_path(full_doc_path, path)
-

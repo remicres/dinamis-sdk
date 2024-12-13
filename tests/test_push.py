@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import dinamis_sdk
 import time
 
@@ -8,6 +10,6 @@ with open(local_filename, "w") as f:
 
 pushed = dinamis_sdk.push(
     local_filename=local_filename,
-    target_url="https://s3-data.meso.umontpellier.fr/sm1-gdc-tests/titi.txt"
+    target_url="https://s3-data.meso.umontpellier.fr/sm1-gdc-tests/titi.txt",
 )
 print("Done")

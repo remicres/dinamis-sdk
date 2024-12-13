@@ -1,4 +1,5 @@
 """Module dedicated to OAuth2 device flow."""
+
 import datetime
 import io
 import json
@@ -8,9 +9,14 @@ from abc import abstractmethod
 from typing import Dict
 import requests
 from pydantic import BaseModel  # pylint: disable = no-name-in-module
-import qrcode
+import qrcode  # type: ignore
 from .utils import (
-    log, JWT_FILE, TOKEN_ENDPOINT, AUTH_BASE_URL, settings, create_session
+    log,
+    JWT_FILE,
+    TOKEN_ENDPOINT,
+    AUTH_BASE_URL,
+    settings,
+    create_session,
 )
 
 
@@ -36,9 +42,7 @@ class DeviceGrantResponse(BaseModel):  # pylint: disable = R0903
 class GrantMethodBase:
     """Base class for grant methods."""
 
-    headers: Dict[str, str] = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    headers: Dict[str, str] = {"Content-Type": "application/x-www-form-urlencoded"}
     token_endpoint = TOKEN_ENDPOINT
     base_url = AUTH_BASE_URL
     keycloak_realm = "dinamis"
@@ -60,7 +64,7 @@ class GrantMethodBase:
         """Base payload."""
         return {
             "client_id": self.client_id,
-            "scope": "openid offline_access"
+            "scope": "openid offline_access",
         }
 
     def refresh_token(self, old_jwt: JWT) -> JWT:
@@ -77,15 +81,17 @@ class GrantMethodBase:
         log.debug("Refreshing token")
         assert old_jwt, "JWT is empty"
         data = self.data_base.copy()
-        data.update({
-            "refresh_token": old_jwt.refresh_token,
-            "grant_type": "refresh_token"
-        })
+        data.update(
+            {
+                "refresh_token": old_jwt.refresh_token,
+                "grant_type": "refresh_token",
+            }
+        )
         ret = requests.post(
             self.token_endpoint,
             headers=self.headers,
             data=data,
-            timeout=10
+            timeout=10,
         )
         if ret.status_code == 200:
             log.debug(ret.text)
@@ -113,7 +119,7 @@ class DeviceGrant(GrantMethodBase):
             device_endpoint,
             headers=self.headers,
             data=self.data_base,
-            timeout=10
+            timeout=10,
         )
         if ret.status_code == 200:
             response = DeviceGrantResponse(**ret.json())
@@ -132,19 +138,26 @@ class DeviceGrant(GrantMethodBase):
             log.info("Waiting for authentication...")
             start = time.time()
             data = self.data_base.copy()
-            data.update({
-                "device_code": response.device_code,
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
-            })
+            grant_type = "urn:ietf:params:oauth:grant-type:device_code"
+            data.update(
+                {
+                    "device_code": response.device_code,
+                    "grant_type": grant_type,
+                }
+            )
             while True:
                 ret = requests.post(
                     self.token_endpoint,
                     headers=self.headers,
                     data=data,
-                    timeout=10
+                    timeout=10,
                 )
                 elapsed = time.time() - start
-                log.debug("Elapsed: %s, status: %s", elapsed, ret.status_code)
+                log.debug(
+                    "Elapsed: %s, status: %s",
+                    elapsed,
+                    ret.status_code,
+                )
                 if elapsed > response.expires_in:
                     raise ConnectionError("Authentication link has expired.")
                 if ret.status_code != 200:
@@ -157,7 +170,7 @@ class DeviceGrant(GrantMethodBase):
 class OAuth2Session:
     """Class to start an OAuth2 session."""
 
-    def __init__(self, grant_type: GrantMethodBase = DeviceGrant):
+    def __init__(self, grant_type: type[GrantMethodBase] = DeviceGrant):
         """
         Initialize.
 
@@ -168,7 +181,7 @@ class OAuth2Session:
         self.grant = grant_type()
         self.jwt_ttl_margin_seconds = 60
         self.jwt_issuance = datetime.datetime(year=1, month=1, day=1)
-        self.jwt = None
+        self.jwt: JWT | None = None
 
     def save_token(self, now: datetime.datetime):
         """
@@ -181,8 +194,9 @@ class OAuth2Session:
         self.jwt_issuance = now
         if JWT_FILE:
             try:
-                with open(JWT_FILE, 'w', encoding='UTF-8') as file:
-                    json.dump(self.jwt.dict(), file)
+                if self.jwt:
+                    with open(JWT_FILE, "w", encoding="UTF-8") as file:
+                        json.dump(self.jwt.dict(), file)
                 log.debug("Token saved in %s", JWT_FILE)
             except IOError as io_err:
                 log.warning("Unable to save token (%s)", io_err)
@@ -197,9 +211,7 @@ class OAuth2Session:
         log.debug("access_token_ttl is %s", access_token_ttl_seconds)
         if access_token_ttl_seconds >= ttl_margin_seconds:
             # Token is still valid
-            log.debug(
-                "Credentials from %s still valid", JWT_FILE
-            )
+            log.debug("Credentials from %s still valid", JWT_FILE)
             return
         if access_token_ttl_seconds < ttl_margin_seconds:
             # Access token in not valid, but refresh might be
@@ -209,7 +221,7 @@ class OAuth2Session:
                 log.warning(
                     "Unable to refresh token (reason: %s). "
                     "Renewing initial authentication.",
-                    con_err
+                    con_err,
                 )
                 self.jwt = self.grant.get_first_token()
         else:
@@ -223,13 +235,13 @@ class OAuth2Session:
             if JWT_FILE and os.path.isfile(JWT_FILE):
                 log.debug("Trying to grab credentials from %s", JWT_FILE)
                 try:
-                    with open(JWT_FILE, encoding='UTF-8') as json_file:
+                    with open(JWT_FILE, encoding="UTF-8") as json_file:
                         self.jwt = JWT(**json.load(json_file))
                 except FileNotFoundError as error:
                     log.warning(
                         "Warning: can't use token from file %s (%s)",
                         JWT_FILE,
-                        error
+                        error,
                     )
             if not self.jwt:
                 # if JWT is still None, we use the grant method
@@ -249,7 +261,7 @@ class TokenServer:
         self.endpoint = endpoint
         self.session = create_session(
             retry_total=retry_total,
-            retry_backoff_factor=retry_backoff_factor
+            retry_backoff_factor=retry_backoff_factor,
         )
         log.info("Using Token Server: %s", self.endpoint)
 
@@ -258,8 +270,11 @@ class TokenServer:
         return self.session.get(self.endpoint, timeout=10).json()
 
 
-session = TokenServer(settings.dinamis_sdk_token_server) \
-    if settings.dinamis_sdk_token_server else OAuth2Session()
+session = (
+    TokenServer(settings.dinamis_sdk_token_server)
+    if settings.dinamis_sdk_token_server
+    else OAuth2Session()
+)
 
 
 def _get_access_token():
@@ -278,5 +293,5 @@ def set_access_token_fn(func):
         func: access token accessor
 
     """
-    global get_access_token
+    global get_access_token  # pylint: disable=W0603
     get_access_token = func

@@ -1,16 +1,23 @@
 """Dinamis Command Line Interface."""
-import click
-from .utils import APIKEY_FILE, create_session, S3_SIGNING_ENDPOINT, log
-from .auth import get_access_token
-import os
+
 import json
-from typing import List, Dict
+import os
+from typing import Dict, List
+
+import click
+
+from .auth import get_access_token
+from .utils import (
+    APIKEY_FILE,
+    S3_SIGNING_ENDPOINT,
+    create_session,
+    log,
+)
 
 
 @click.group(help="Dinamis CLI")
 def app() -> None:
     """Click group for dinamis sdk subcommands."""
-    pass
 
 
 def http(route: str):
@@ -19,7 +26,7 @@ def http(route: str):
     ret = session.get(
         f"{S3_SIGNING_ENDPOINT}{route}",
         timeout=5,
-        headers={"authorization": f"bearer {get_access_token()}"}
+        headers={"authorization": f"bearer {get_access_token()}"},
     )
     ret.raise_for_status()
     return ret
@@ -48,7 +55,7 @@ def create():
 
 
 @app.command(help="List all API keys")
-def list():
+def list():  # [redefined-builtin]
     """List all API keys."""
     log.info(f"All generated API keys: {list_keys()}")
 
@@ -73,7 +80,7 @@ def revoke(access_key: str):
 @app.command(help="Get and store an API key")
 def register():
     """Get and store an API key."""
-    with open(APIKEY_FILE, 'w') as f:
+    with open(APIKEY_FILE, "w", encoding="utf-8") as f:
         json.dump(create_key(), f)
     log.info(f"API key successfully created and stored in {APIKEY_FILE}")
 
@@ -84,7 +91,7 @@ def delete(dont_revoke):
     """Delete the stored API key."""
     if os.path.isfile(APIKEY_FILE):
         if not dont_revoke:
-            with open(APIKEY_FILE, encoding='UTF-8') as json_file:
+            with open(APIKEY_FILE, encoding="UTF-8") as json_file:
                 api_key = json.load(json_file)
                 if "access-key" in api_key:
                     revoke_key(api_key["access-key"])
