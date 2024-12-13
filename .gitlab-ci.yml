@@ -148,9 +148,10 @@ API key Tests:
 pypi:
   stage: Ship
   only:
-    - main
+   - main
+  before_script:
+   - python3 -m pip install --upgrade build twine
   script:
-    - pip install --upgrade build twine
-    - python3 -m build
+   - python3 -m build
   after_script:
-    - python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ --non-interactive --verbose -u __token__ -p $pypi_token dist/*
+   - python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ --non-interactive --verbose -u __token__ -p $pypi_token dist/*
