@@ -98,6 +98,8 @@ def retrieve_token_endpoint(
 
 if settings.dinamis_sdk_bypass_api:
     S3_SIGNING_ENDPOINT = settings.dinamis_sdk_bypass_api
+    if not S3_SIGNING_ENDPOINT.endswith("/"):
+        S3_SIGNING_ENDPOINT += "/"
 
 # Token endpoint is typically something like: https://keycloak-dinamis.apps.okd
 # .crocc.meso.umontpellier.fr/auth/realms/dinamis/protocol/openid-connect/token
