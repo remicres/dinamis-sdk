@@ -118,6 +118,11 @@ pages:
   except:
     - main
 
+Misc Tests:
+  extends: .tests_base
+  script:
+    - python tests/test_misc.py
+
 OAuth2 Tests:
   extends: .tests_base
   script:

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dinamis-sdk"
 authors = [{name = "inrae", email = "remi.cresson@inrae.fr"}]
-version = "0.3.5"
+dynamic = ["version"]
 description = "DINAMIS SDK for Python"
 requires-python = ">=3.7"
 dependencies = [
@@ -36,3 +36,6 @@ disable = "W1203,R0903,E0401,W0622"
 
 [tool.setuptools]
 packages = ["dinamis_sdk"]
+
+[tool.setuptools.dynamic]
+version = {attr = "dinamis_sdk.__version__"}

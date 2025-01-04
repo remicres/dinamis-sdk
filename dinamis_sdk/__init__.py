@@ -3,7 +3,7 @@
 # flake8: noqa
 import pkg_resources
 
-__version__ = pkg_resources.require("dinamis-sdk")[0].version
+__version__ = "0.3.6"
 from dinamis_sdk.s3 import (
     sign,
     sign_inplace,
