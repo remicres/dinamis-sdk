@@ -196,7 +196,7 @@ class OAuth2Session:
             try:
                 if self.jwt:
                     with open(JWT_FILE, "w", encoding="UTF-8") as file:
-                        json.dump(self.jwt.dict(), file)
+                        json.dump(self.jwt.model_dump(), file)
                 log.debug("Token saved in %s", JWT_FILE)
             except IOError as io_err:
                 log.warning("Unable to save token (%s)", io_err)
