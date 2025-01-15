@@ -129,24 +129,26 @@ OAuth2 Tests:
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py
+    - python tests/test_headers.py authorization
 
 API key Tests:
   extends: .tests_base
   script:
     - dinamis_cli register
-    - mv /root/.config/dinamis_sdk_auth/.token /root/.config/dinamis_sdk_auth/.token_
+    - python tests/test_headers.py access-key
+    # ensure that we une only API key from now
+    - mv /root/.config/dinamis_sdk_auth/.jwt /root/.config/dinamis_sdk_auth/.jwt_
     - python tests/test_spot-6-7-drs.py
     - python tests/test_super-s2.py
     - python tests/test_push.py
-    - mv /root/.config/dinamis_sdk_auth/.token_ /root/.config/dinamis_sdk_auth/.token
-    - dinamis_cli delete
-    - toto=$(dinamis_cli create 2>&1)
-    - mv /root/.config/dinamis_sdk_auth/.token /root/.config/dinamis_sdk_auth/.token_
-    - export DINAMIS_SDK_ACCESS_KEY=$(echo $toto | cut -d"'" -f4)
-    - export DINAMIS_SDK_SECRET_KEY=$(echo $toto | cut -d"'" -f8)
+    # Test API key from environment variables
+    - export DINAMIS_SDK_ACCESS_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f4)
+    - export DINAMIS_SDK_SECRET_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f8)
+    - rm /root/.config/dinamis_sdk_auth/.apikey  # ensure that we use env. vars.
     - python tests/test_spot-6-7-drs.py
-    - mv /root/.config/dinamis_sdk_auth/.token_ /root/.config/dinamis_sdk_auth/.token
-    - dinamis_cli revoke $DINAMIS_SDK_ACCESS_KEY
+    # bring back oauth2 credentials so we can revoke the API key
+    - mv /root/.config/dinamis_sdk_auth/.jwt_ /root/.config/dinamis_sdk_auth/.jwt
+    - dinamis_cli revoke ${DINAMIS_SDK_ACCESS_KEY}
 
 # --------------------------------- Ship --------------------------------------
 

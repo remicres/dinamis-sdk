@@ -1,6 +1,6 @@
 """This module is used to upload files using HTTP requests."""
 
-from .s3 import sign_url_put
+from .signing import sign_url_put
 from .utils import create_session
 
 

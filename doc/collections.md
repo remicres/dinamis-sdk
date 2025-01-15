@@ -4,8 +4,8 @@ The following collections are currently available in the catalog:
 
 | Collection             | Producer     | Time range | Location        | Resolution | Description                        |
 | ---------------------- | ------------ | ---------- | --------------- | ---------- | ---------------------------------- |
-| `spot-6-7-drs`         | DINAMIS DRS  | 2017-2022  | France mainland | 1.5m, 6m   | Spot-6/7 images ([License](https://ids-dinamis.data-terra.org/web/guest/37))|
-| `sentinel2-l2a-theia`  | CNES, CESBIO | 2017-today | France mainland | 10m, 20m   | Sentinel-2 images, level 2A        |
+| `spot-6-7-drs`         | DINAMIS DRS  | 2017-2023  | France mainland | 1.5m, 6m   | Spot-6/7 images ([License](https://ids-dinamis.data-terra.org/web/guest/37))|
+| `sentinel2-l2a-theia`  | CNES, CESBIO | 2015-today | France mainland | 10m, 20m   | Sentinel-2 images, level 2A        |
 | `super-sentinel-2-l2a` | INRAE        | 2017-2023  | Selected sites  | 1.5m       | Sentinel-2 images enhanced to 1.5m |
 | `EBV-SI-A-wet-16PFS`   | INRAE        | 2017-2024  | Costa Rica      | 10m        | Radiometric and ecological indices |
 | `EBV-SI-A-dry-16PFS`   | INRAE        | 2017-2024  | Costa Rica      | 10m        | Radiometric and ecological indices |

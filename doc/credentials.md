@@ -40,7 +40,7 @@ dinamis_cli register
 ```
 
 Typically on linux the generated API key will be stored in 
-`/home/username/.config/dinamis_sdk_auth/.api_key`. Optionally you can override 
+`/home/username/.config/dinamis_sdk_auth/.apikey`. Optionally you can override 
 the parent directory setting `DINAMIS_SDK_SETTING_DIR`.
 
 Just follow the instructions to log in a single time, then the API key can be 

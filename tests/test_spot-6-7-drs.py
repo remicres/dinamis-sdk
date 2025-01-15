@@ -1,7 +1,10 @@
-#!/usr/bin/env python
+"""Spot 6/7 STAC items retrieval test."""
+
+import requests
+
+import pystac_client
 
 import dinamis_sdk
-import pystac_client
 
 api = pystac_client.Client.open(
     "https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr",
@@ -13,5 +16,8 @@ res = api.search(
     collections=["spot-6-7-drs"],
 )
 urls = [item.assets["src_xs"].href for item in res.items()]
-print(len(urls))
+print(f"{len(urls)} items found")
 assert len(urls) > 1000
+
+response = requests.get(urls[0], timeout=10)
+assert response.status_code == 200

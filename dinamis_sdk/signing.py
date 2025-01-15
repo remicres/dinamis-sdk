@@ -10,7 +10,6 @@ import collections.abc
 import math
 import re
 import time
-from ast import literal_eval
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import singledispatch
@@ -32,16 +31,10 @@ from pystac.serialization.identify import identify_stac_object_type
 from pystac.utils import datetime_to_str
 from pystac_client import ItemSearch
 
-from .auth import get_access_token
-from .utils import (
-    APIKEY,
-    MAX_URLS,
-    S3_SIGNING_ENDPOINT,
-    S3_STORAGE_DOMAIN,
-    create_session,
-    log,
-    settings,
-)
+from .http import session
+from .settings import S3_STORAGE_DOMAIN, MAX_URLS, ENV
+from .utils import get_logger_for
+
 
 _PYDANTIC_2_0 = packaging.version.parse(
     pydantic.__version__
@@ -53,6 +46,8 @@ asset_xpr = re.compile(
     r"https:\/\/(?P<account>[A-z0-9-.]+?)"
     r"\.meso\.umontpellier\.fr\/(?P<blob>[^<]+)"  # ignore
 )
+
+log = get_logger_for(__name__)
 
 
 class URLBase(BaseModel):  # pylint: disable = R0903
@@ -442,8 +437,6 @@ sign_reference_file = sign_mapping
 def _generic_get_signed_urls(
     urls: List[str],
     route: str,
-    retry_total: int = 10,
-    retry_backoff_factor: float = 0.8,
 ) -> Dict[str, SignedURL]:
     """
     Get multiple signed URLs.
@@ -454,16 +447,6 @@ def _generic_get_signed_urls(
     Args:
         urls: urls
         route: route (API)
-        retry_total (int): The number of allowable retry attempts for REST API
-            calls. Use retry_total=0 to disable retries. A backoff factor to
-            apply between attempts.
-        retry_backoff_factor (float): A backoff factor to apply between
-            attempts after the second try (most errors are resolved immediately
-            by a second try without a delay). Retry policy will sleep for:
-            ``{backoff factor} * (2 ** ({number of total retries} - 1))``
-            seconds. If the backoff_factor is 0.1, then the retry will sleep
-            for [0.0s, 0.2s, 0.4s, ...] between retries. The default value is
-            0.8.
 
     Returns:
         SignedURL: the signed URL
@@ -473,23 +456,7 @@ def _generic_get_signed_urls(
     # pylint: disable=too-many-branches
     log.debug("Get signed URLs for %s", urls)
     start_time = time.time()
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    if APIKEY:
-        headers.update(APIKEY)
-        log.debug("Using API key")
-    elif settings.dinamis_sdk_bypass_api:
-        log.debug("Using bypass API %s", settings.dinamis_sdk_bypass_api)
-    else:
-        access_token = get_access_token()
-        headers.update({"Authorization": f"Bearer {access_token}"})
-        log.debug(
-            "Access token: %s...%s",
-            access_token[:8],
-            access_token[-8:],
-        )
+
     signed_urls = {}
     for url in urls:
         signed_url_in_cache = CACHE.get(url)
@@ -497,11 +464,11 @@ def _generic_get_signed_urls(
             log.debug("URL %s already in cache", url)
             ttl = signed_url_in_cache.ttl()
             log.debug("URL %s TTL is %s", url, ttl)
-            if ttl > settings.dinamis_sdk_ttl_margin:
+            if ttl > ENV.dinamis_sdk_ttl_margin:
                 log.debug(
                     "Using cache (%s > %s)",
                     ttl,
-                    settings.dinamis_sdk_ttl_margin,
+                    ENV.dinamis_sdk_ttl_margin,
                 )
                 signed_urls[url] = signed_url_in_cache
     not_signed_urls = [url for url in urls if url not in signed_urls]
@@ -512,10 +479,6 @@ def _generic_get_signed_urls(
         # Refresh the token if there's less than
         # `settings.dinamis_sdk_ttl_margin seconds` remaining, in order to
         # give a small amount of time to do stuff with the url
-        session = create_session(
-            retry_backoff_factor=retry_backoff_factor,
-            retry_total=retry_total,
-        )
         n_urls = len(not_signed_urls)
         log.debug("Number of URLs to sign: %s", n_urls)
         n_chunks = math.ceil(n_urls / MAX_URLS)
@@ -526,19 +489,9 @@ def _generic_get_signed_urls(
             chunk_end = min(chunk_start + MAX_URLS, n_urls)
             not_signed_urls_chunk = not_signed_urls[chunk_start:chunk_end]
             params: Dict[str, Any] = {"urls": not_signed_urls_chunk}
-            if settings.dinamis_sdk_url_duration:
-                params["duration_seconds"] = settings.dinamis_sdk_url_duration
-            post_url = f"{S3_SIGNING_ENDPOINT}{route}"
-            log.debug("POST %s", post_url)
-            response = session.post(
-                post_url, params=params, headers=headers, timeout=10
-            )
-            try:
-                response.raise_for_status()
-            except Exception as e:
-                log.error(literal_eval(response.content))
-                raise e
-
+            if ENV.dinamis_sdk_url_duration:
+                params["duration_seconds"] = ENV.dinamis_sdk_url_duration
+            response = session.post(route=route, params=params)
             signed_url_batch = SignedURLBatch(**response.json())
             if not signed_url_batch:
                 raise ValueError(

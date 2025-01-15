@@ -2,8 +2,9 @@
 
 <div align="center">
 <div id="qr" style="display:inline-block; margin: auto; align: center; vertical-align: middle; height:3cm;" >
-<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1.5cm; padding:5px">
-<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1.75cm; padding: 5px">
+<img src="https://upload.wikimedia.org/wikipedia/fr/thumb/2/2a/Logo-INRAE_Transparent.svg/2560px-Logo-INRAE_Transparent.svg.png" style="height:1cm; padding:5px">
+<img src="https://upload.wikimedia.org/wikipedia/commons/7/7f/Logo_IRD_2016_BLOC_FR_COUL.png" style="height:1cm; padding:5px">
+<img src="https://theia.sedoo.fr/wp-content-theia/uploads/sites/6/2020/05/Logo_DINAMIS_300px.png" style="height:1cm; padding: 5px">
 </div>
 <br>
 <a href="https://forgemia.inra.fr/cdos-pub/dinamis-sdk/-/releases">

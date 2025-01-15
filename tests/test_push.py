@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import dinamis_sdk
-import time
 
 local_filename = "/tmp/toto.txt"
 

@@ -1,18 +1,15 @@
 """Dinamis Command Line Interface."""
 
-import json
-import os
 from typing import Dict, List
 
 import click
 
-from .auth import get_access_token
-from .utils import (
-    APIKEY_FILE,
-    S3_SIGNING_ENDPOINT,
-    create_session,
-    log,
-)
+from .model import ApiKey
+from .http import OAuth2ConnectionMethod
+from .utils import get_logger_for, create_session
+
+log = get_logger_for(__name__)
+conn = OAuth2ConnectionMethod()
 
 
 @click.group(help="Dinamis CLI")
@@ -24,9 +21,9 @@ def http(route: str):
     """Perform an HTTP request."""
     session = create_session()
     ret = session.get(
-        f"{S3_SIGNING_ENDPOINT}{route}",
+        f"{conn.endpoint}{route}",
         timeout=5,
-        headers={"authorization": f"bearer {get_access_token()}"},
+        headers=conn.get_headers(),
     )
     ret.raise_for_status()
     return ret
@@ -80,22 +77,14 @@ def revoke(access_key: str):
 @app.command(help="Get and store an API key")
 def register():
     """Get and store an API key."""
-    with open(APIKEY_FILE, "w", encoding="utf-8") as f:
-        json.dump(create_key(), f)
-    log.info(f"API key successfully created and stored in {APIKEY_FILE}")
+    ApiKey.from_dict(create_key()).to_config_dir()
+    log.info("API key successfully created and stored")
 
 
 @app.command(help="Delete the stored API key")
 @click.option("--dont-revoke", default=False)
-def delete(dont_revoke):
+def delete(dont_revoke: bool):
     """Delete the stored API key."""
-    if os.path.isfile(APIKEY_FILE):
-        if not dont_revoke:
-            with open(APIKEY_FILE, encoding="UTF-8") as json_file:
-                api_key = json.load(json_file)
-                if "access-key" in api_key:
-                    revoke_key(api_key["access-key"])
-        os.remove(APIKEY_FILE)
-        log.info(f"File {APIKEY_FILE} deleted!")
-    else:
-        log.info("No API key stored!")
+    if not dont_revoke:
+        revoke_key(ApiKey.from_config_dir().access_key)
+    ApiKey.delete_from_config_dir()

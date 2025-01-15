@@ -1,7 +1,8 @@
-*.egg-info
-*/**/__pycache__
-.idea
+*.egg-info/
+__pycache__/
+.idea/
 dinamis_sdk/test
-build
-dist
+build/
+dist/
 *venv/
+.vscode/
