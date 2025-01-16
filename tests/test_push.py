@@ -1,14 +1,25 @@
 #!/usr/bin/env python
 
+import requests
+
 import dinamis_sdk
 
-local_filename = "/tmp/toto.txt"
+LOCAL_FILENAME = "/tmp/toto.txt"
 
-with open(local_filename, "w") as f:
+with open(LOCAL_FILENAME, "w") as f:
     f.write("hello world")
 
-pushed = dinamis_sdk.push(
-    local_filename=local_filename,
-    target_url="https://s3-data.meso.umontpellier.fr/sm1-gdc-tests/titi.txt",
-)
+TARGET_URL = "https://s3-data.meso.umontpellier.fr/sm1-gdc-tests/titi.txt"
+
+dinamis_sdk.push(local_filename=LOCAL_FILENAME, target_url=TARGET_URL)
+print("push OK")
+
+signed_url = dinamis_sdk.sign(TARGET_URL)
+print("sign OK")
+
+res = requests.get(signed_url, stream=True, timeout=10)
+assert res.status_code == 200, "Get NOK"
+print("get OK")
+
+
 print("Done")

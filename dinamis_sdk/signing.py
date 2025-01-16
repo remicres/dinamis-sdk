@@ -3,7 +3,6 @@ S3 Module.
 
 Revamp of Microsoft Planetary Computer SAS, using S3 and custom URL signing
 endpoint instead.
-
 """
 
 import collections.abc
@@ -14,6 +13,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from functools import singledispatch
 from typing import Any, Dict, List, Mapping, TypeVar, cast
+from enum import Enum
 from urllib.parse import parse_qs, urlparse
 
 import packaging.version
@@ -153,7 +153,14 @@ def sign_string(url: str, copy: bool = True) -> str:
     return sign_urls(urls=[url])[url]
 
 
-def _generic_sign_urls(urls: List[str], route: str) -> Dict[str, str]:
+class SignURLRoute(Enum):
+    """Different routes used for sign_urls."""
+
+    SIGN_URLS_GET = "sign_urls"
+    SIGN_URLS_PUT = "sign_urls_put"
+
+
+def _generic_sign_urls(urls: List[str], route: SignURLRoute) -> Dict[str, str]:
     """Sign URLs with a S3 Token.
 
     Signing URL allows read access to files in storage.
@@ -204,12 +211,12 @@ def _generic_sign_urls(urls: List[str], route: str) -> Dict[str, str]:
 
 def sign_urls(urls: List[str]) -> Dict[str, str]:
     """Sign multiple URLs for GET."""
-    return _generic_sign_urls(urls=urls, route="sign_urls")
+    return _generic_sign_urls(urls=urls, route=SignURLRoute(SignURLRoute.SIGN_URLS_GET))
 
 
 def sign_urls_put(urls: List[str]) -> Dict[str, str]:
     """Sign multiple URLs for PUT."""
-    return _generic_sign_urls(urls=urls, route="sign_urls_put")
+    return _generic_sign_urls(urls=urls, route=SignURLRoute(SignURLRoute.SIGN_URLS_PUT))
 
 
 def sign_url_put(url: str) -> str:
@@ -436,7 +443,7 @@ sign_reference_file = sign_mapping
 
 def _generic_get_signed_urls(
     urls: List[str],
-    route: str,
+    route: SignURLRoute,
 ) -> Dict[str, SignedURL]:
     """
     Get multiple signed URLs.
@@ -460,7 +467,7 @@ def _generic_get_signed_urls(
     signed_urls = {}
     for url in urls:
         signed_url_in_cache = CACHE.get(url)
-        if signed_url_in_cache:
+        if signed_url_in_cache and route == SignURLRoute.SIGN_URLS_GET:
             log.debug("URL %s already in cache", url)
             ttl = signed_url_in_cache.ttl()
             log.debug("URL %s TTL is %s", url, ttl)
@@ -491,7 +498,7 @@ def _generic_get_signed_urls(
             params: Dict[str, Any] = {"urls": not_signed_urls_chunk}
             if ENV.dinamis_sdk_url_duration:
                 params["duration_seconds"] = ENV.dinamis_sdk_url_duration
-            response = session.post(route=route, params=params)
+            response = session.post(route=route.value, params=params)
             signed_url_batch = SignedURLBatch(**response.json())
             if not signed_url_batch:
                 raise ValueError(
@@ -505,7 +512,7 @@ def _generic_get_signed_urls(
                 )
             for url, href in signed_url_batch.hrefs.items():
                 signed_url = SignedURL(expiry=signed_url_batch.expiry, href=href)
-                if route == "sign_urls":
+                if route == SignURLRoute.SIGN_URLS_GET:
                     # Only put GET urls in cache
                     CACHE[url] = signed_url
                 signed_urls[url] = signed_url

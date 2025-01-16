@@ -17,7 +17,7 @@ def app() -> None:
     """Click group for dinamis sdk subcommands."""
 
 
-def http(route: str):
+def _http(route: str):
     """Perform an HTTP request."""
     session = create_session()
     ret = session.get(
@@ -31,17 +31,17 @@ def http(route: str):
 
 def create_key() -> Dict[str, str]:
     """Create an API key."""
-    return http("create_api_key").json()
+    return _http("create_api_key").json()
 
 
 def list_keys() -> List[str]:
     """List all generated API keys."""
-    return http("list_api_keys").json()
+    return _http("list_api_keys").json()
 
 
 def revoke_key(key: str):
     """Revoke an API key."""
-    http(f"revoke_api_key?access_key={key}")
+    _http(f"revoke_api_key?access_key={key}")
     log.info(f"API key {key} revoked")
 
 

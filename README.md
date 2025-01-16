@@ -27,3 +27,5 @@ api = pystac_client.Client.open(
 
 For more information read the 
 [documentation](https://cdos-pub.pages.mia.inra.fr/dinamis-sdk).
+
+For `R` users, check [rstactheia](https://cdos-pub.pages.mia.inra.fr/rstactheia).

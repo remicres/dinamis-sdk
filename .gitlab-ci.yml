@@ -41,7 +41,7 @@ pip_install:
 
 .static_analysis_base:
   stage: Static Analysis
-  allow_failure: true
+  allow_failure: false
 
 flake8:
   needs:
