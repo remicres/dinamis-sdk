@@ -19,7 +19,7 @@ def push(
     )
 
     with open(local_filename, "rb") as f:
-        ret = session.put(remote_presigned_url, data=f)
+        ret = session.put(remote_presigned_url, data=f, timeout=10)
 
     if ret.status_code == 200:
         return remote_presigned_url
