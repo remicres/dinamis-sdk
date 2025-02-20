@@ -29,8 +29,6 @@ stages:
 .tests_base:
   extends: .static_analysis_with_pip_install
   stage: Test
-  rules:
-    - if: $CI_COMMIT_REF_PROTECTED == "false"
 
 pylint:
   script:
