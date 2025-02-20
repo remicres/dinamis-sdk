@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Super S2 test module."""
 
 import pystac
 import pystac_client

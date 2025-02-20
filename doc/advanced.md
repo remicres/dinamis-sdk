@@ -19,7 +19,7 @@ this environment variable, in seconds.
 
 - `DINAMIS_SDK_BYPASS_AUTH_API`: 
 Use this environment variable to use a different signing API endpoint, 
-with no authentication mecanism.
+with no authentication mechanism.
 
 - `DINAMIS_SDK_CONFIG_DIR`: 
 The default config directory used to store authentication credentials (i.e. 

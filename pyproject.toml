@@ -1,10 +1,9 @@
-[build-system]
-requires = ["setuptools>=61.2"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "dinamis-sdk"
-authors = [{name = "inrae", email = "remi.cresson@inrae.fr"}]
+authors = [
+    {name = "Rémi Cresson", email = "remi.cresson@inrae.fr"},
+    {name = "Pablo Boizeau", email = "pablo.boizeau@ird.fr"}
+    ]
 dynamic = ["version"]
 description = "DINAMIS SDK for Python"
 requires-python = ">=3.7"
@@ -23,6 +22,12 @@ dependencies = [
 readme = "README.md"
 license = {file = "LICENSE"}
 
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
 [project.scripts]
 dinamis_cli = "dinamis_sdk.cli:app"
 
@@ -36,6 +41,3 @@ disable = "W1203,R0903,E0401,W0622"
 
 [tool.setuptools]
 packages = ["dinamis_sdk"]
-
-[tool.setuptools.dynamic]
-version = {attr = "dinamis_sdk.__version__"}

@@ -2,7 +2,7 @@
 
 # flake8: noqa
 
-__version__ = "0.4.1"
+from importlib.metadata import version, PackageNotFoundError
 from dinamis_sdk.signing import (
     sign,
     sign_inplace,
@@ -15,3 +15,8 @@ from dinamis_sdk.signing import (
 from .oauth2 import OAuth2Session  # noqa
 from .upload import push
 from .http import get_headers
+
+try:
+    __version__ = version("dinamis_sdk")
+except PackageNotFoundError:
+    pass

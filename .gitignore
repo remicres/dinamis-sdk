@@ -6,3 +6,4 @@ build/
 dist/
 *venv/
 .vscode/
+_version.py

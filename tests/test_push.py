@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Push test module."""
 
 import requests
 
@@ -6,7 +6,7 @@ import dinamis_sdk
 
 LOCAL_FILENAME = "/tmp/toto.txt"
 
-with open(LOCAL_FILENAME, "w") as f:
+with open(LOCAL_FILENAME, "w", encoding="utf-8") as f:
     f.write("hello world")
 
 TARGET_URL = "https://s3-data.meso.umontpellier.fr/sm1-gdc-tests/titi.txt"

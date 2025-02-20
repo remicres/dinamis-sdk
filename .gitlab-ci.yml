@@ -1,133 +1,48 @@
-default:
-  image: python:3.12-slim
+include:
+  - project: "cdos-pub/pycode-quality"
+    ref: "main"
+    file:
+      - ".gitlab/ci/static-analysis.yml"
+      - ".gitlab/ci/doc.yml"
+      - ".gitlab/ci/pip.yml"
 
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  IMPL_MODULE_NAME: dinamis_sdk
 
-cache:
-  paths:
-    - .cache/pip
-    - .venv
+  PYTHON_IMG: python:3.12-slim
+  PIP_RASTERIO_USED: true
+  PIP_PACKAGE_URL: "https://upload.pypi.org/legacy/"
+  TWINE_USERNAME: __token__
+  TWINE_PASSWORD: ${pypi_token} 
 
-before_script:
-  - pip install virtualenv
-  - virtualenv .venv
-  - source .venv/bin/activate
-  - pip install -e .
-
-workflow:
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-    - if: $CI_COMMIT_BRANCH == 'main'
+  DOC_BUILD_SELF: true
 
 stages:
-  - Install
   - Static Analysis
   - Test
-  - Ship
   - Documentation
-
-# ------------------------------- Install -------------------------------------
-
-pip_install:
-  stage: Install
-  before_script:
-    - python --version ; pip --version
-  script:
-    - pip install .
-    - pip list -v
-
-# ------------------------------ Static analysis ------------------------------
+  - Pip
 
 .static_analysis_base:
-  stage: Static Analysis
   allow_failure: false
 
-flake8:
-  needs:
-    - pip_install
-  extends: .static_analysis_base
-  script:
-    - pip install flake8
-    - flake8 --ignore E501 ./dinamis_sdk
-
-pylint:
-  needs:
-    - pip_install
-  extends: .static_analysis_base
-  script:
-    - pip install pylint
-    - pylint ./dinamis_sdk
-
-codespell:
-  needs:
-    - pip_install
-  extends: .static_analysis_base
-  script: 
-    - pip install codespell
-    - codespell ./dinamis_sdk docs README.md
-
-pydocstyle:
-  needs:
-    - pip_install
-  extends: .static_analysis_base
-  script:
-    - pip install pydocstyle
-    - pydocstyle ./dinamis_sdk
-
-mypy:
-  needs:
-    - pip_install
-  extends: .static_analysis_base
-  script:
-    - pip install mypy
-    - pip list -v
-    - mypy --install-types --non-interactive .
-
-# --------------------------------- Doc ---------------------------------------
-
-.doc_base:
-  stage: Documentation
-  before_script:
-    - pip install -r doc/doc_requirements.txt
-  artifacts:
-    paths:
-      - public
-      - public_test
-
-test:
-  extends: .doc_base
-  except:
-    - main
-  script:
-    - mkdocs build --site-dir public_test
-
-pages:
-  extends: .doc_base
-  only:
-    - main
-  script:
-    - mkdocs build --site-dir public
-
-# --------------------------------- Test --------------------------------------
-
 .tests_base:
-  needs:
-    - pip_install
+  extends: .static_analysis_with_pip_install
   stage: Test
   except:
-    - main
+    - $CI_COMMIT_REF_PROTECTED == "true"
 
-Misc Tests:
-  extends: .tests_base
+pylint:
   script:
-    - python tests/test_misc.py
+    - pip install pylint
+    - pylint dinamis_sdk tests
+
 
 OAuth2 Tests:
   extends: .tests_base
   script:
-    - python tests/test_spot-6-7-drs.py
-    - python tests/test_super-s2.py
+    - python tests/test_spot_6_7_drs.py
+    - python tests/test_super_s2.py
     - python tests/test_push.py
     - python tests/test_headers.py authorization
 
@@ -138,27 +53,14 @@ API key Tests:
     - python tests/test_headers.py access-key
     # ensure that we une only API key from now
     - mv /root/.config/dinamis_sdk_auth/.jwt /root/.config/dinamis_sdk_auth/.jwt_
-    - python tests/test_spot-6-7-drs.py
-    - python tests/test_super-s2.py
+    - python tests/test_spot_6_7_drs.py
+    - python tests/test_super_s2.py
     - python tests/test_push.py
     # Test API key from environment variables
     - export DINAMIS_SDK_ACCESS_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f4)
     - export DINAMIS_SDK_SECRET_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f8)
     - rm /root/.config/dinamis_sdk_auth/.apikey  # ensure that we use env. vars.
-    - python tests/test_spot-6-7-drs.py
+    - python tests/test_spot_6_7_drs.py
     # bring back oauth2 credentials so we can revoke the API key
     - mv /root/.config/dinamis_sdk_auth/.jwt_ /root/.config/dinamis_sdk_auth/.jwt
     - dinamis_cli revoke ${DINAMIS_SDK_ACCESS_KEY}
-
-# --------------------------------- Ship --------------------------------------
-
-pypi:
-  stage: Ship
-  only:
-   - main
-  before_script:
-   - python3 -m pip install --upgrade build twine
-  script:
-   - python3 -m build
-  after_script:
-   - python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ --non-interactive --verbose -u __token__ -p $pypi_token dist/*
