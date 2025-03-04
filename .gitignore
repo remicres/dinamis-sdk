@@ -7,3 +7,6 @@ dist/
 *venv/
 .vscode/
 _version.py
+*.xml
+.coverage
+htmlcov

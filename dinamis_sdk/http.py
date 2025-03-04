@@ -1,12 +1,12 @@
 """HTTP connections with various methods."""
 
-from typing import Dict
+from typing import Dict, Any
 from ast import literal_eval
 from pydantic import BaseModel, ConfigDict
 from .utils import get_logger_for, create_session
-from .oauth2 import OAuth2Session
+from .oauth2 import OAuth2Session, retrieve_token_endpoint
 from .model import ApiKey
-from .settings import ENV, SIGNING_ENDPOINT
+from .settings import ENV
 
 
 log = get_logger_for(__name__)
@@ -16,7 +16,7 @@ class BareConnectionMethod(BaseModel):
     """Bare connection method, no extra headers."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    endpoint: str = SIGNING_ENDPOINT
+    endpoint: str = ENV.dinamis_sdk_signing_endpoint
 
     def get_headers(self) -> Dict[str, str]:
         """Get the headers."""
@@ -39,6 +39,15 @@ class OAuth2ConnectionMethod(BareConnectionMethod):
     def get_headers(self):
         """Return the headers."""
         return {"authorization": f"bearer {self.oauth2_session.get_access_token()}"}
+
+    def get_userinfo(self):
+        """Override parent method from BareConnectionMethod."""
+        openapi_url = retrieve_token_endpoint().replace("/token", "/userinfo")
+        return (
+            create_session()
+            .get(openapi_url, timeout=10, headers=self.get_headers())
+            .json()
+        )
 
 
 class ApiKeyConnectionMethod(BareConnectionMethod):
@@ -78,9 +87,9 @@ class HTTPSession:
     def prepare_connection_method(self):
         """Set the connection method."""
         # Custom server without authentication method
-        if ENV.dinamis_sdk_bypass_auth_api:
+        if ENV.dinamis_sdk_digning_disable_auth:
             self._method = BareConnectionMethod(
-                endpoint=ENV.dinamis_sdk_bypass_auth_api
+                endpoint=ENV.dinamis_sdk_signing_endpoint
             )
 
         # API key method
@@ -110,6 +119,18 @@ class HTTPSession:
 session = HTTPSession()
 
 
-def get_headers():
-    """Return the headers."""
+def get_headers() -> dict[str, Any]:
+    """Return the headers needed to authenticate on the system."""
     return session.get_method().get_headers()
+
+
+def get_userinfo() -> dict[str, str]:
+    """Return userinfo."""
+    return OAuth2ConnectionMethod().get_userinfo()
+
+
+def get_username() -> str:
+    """Return username."""
+    user_info = get_userinfo()
+    assert user_info, "Could not fetch user info"
+    return user_info["preferred_username"]

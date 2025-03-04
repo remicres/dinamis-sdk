@@ -8,14 +8,14 @@ from typing import Dict
 import qrcode  # type: ignore
 from .utils import create_session, get_logger_for
 from .model import JWT, DeviceGrantResponse
-from .settings import SIGNING_ENDPOINT
+from .settings import ENV
 
 log = get_logger_for(__name__)
 
 
 def retrieve_token_endpoint():
     """Retrieve the token endpoint from the s3 signing endpoint."""
-    openapi_url = SIGNING_ENDPOINT + "openapi.json"
+    openapi_url = ENV.dinamis_sdk_signing_endpoint + "openapi.json"
     log.debug("Fetching OAuth2 endpoint from openapi url %s", openapi_url)
     _session = create_session()
     res = _session.get(
@@ -54,6 +54,16 @@ class GrantMethodBase:
             "client_id": self.client_id,
             "scope": "openid offline_access",
         }
+
+    def get_userinfo(self):
+        """Get the userinfo endpoint."""
+        if not self._token_endpoint:
+            self._token_endpoint = retrieve_token_endpoint()
+        openapi_url = retrieve_token_endpoint().replace("/token", "/userinfo")
+
+        _session = create_session()
+        res = _session.get(openapi_url, timeout=10, headers=self.headers)
+        return res.json()
 
     def refresh_token(self, old_jwt: JWT) -> JWT:
         """Refresh the token."""

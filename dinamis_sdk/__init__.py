@@ -14,7 +14,7 @@ from dinamis_sdk.signing import (
 )  # noqa
 from .oauth2 import OAuth2Session  # noqa
 from .upload import push
-from .http import get_headers
+from .http import get_headers, get_userinfo, get_username
 
 try:
     __version__ = version("dinamis_sdk")

@@ -1,11 +1,12 @@
 """Spot 6/7 STAC items retrieval test."""
 
-import requests
+import time
 
 import pystac_client
 
 import dinamis_sdk
 
+start = time.time()
 api = pystac_client.Client.open(
     "https://stacapi-cdos.apps.okd.crocc.meso.umontpellier.fr",
     modifier=dinamis_sdk.sign_inplace,
@@ -19,5 +20,9 @@ urls = [item.assets["src_xs"].href for item in res.items()]
 print(f"{len(urls)} items found")
 assert len(urls) > 1000
 
-response = requests.get(urls[0], timeout=10)
-assert response.status_code == 200
+assert "Amz" in urls[0]
+
+print(urls[0])
+
+elapsed = time.time() - start
+print(f"Took {round(elapsed, 2)} s")

@@ -35,30 +35,46 @@ pylint:
     - pip install pylint
     - pylint dinamis_sdk tests
 
-
-OAuth2 Tests:
+Tests:
   extends: .tests_base
   script:
-    - python tests/test_spot_6_7_drs.py
-    - python tests/test_super_s2.py
-    - python tests/test_push.py
-    - python tests/test_headers.py authorization
+    - pip install coverage
 
-API key Tests:
-  extends: .tests_base
-  script:
+    - echo "Starting OAuth2 tests"
+    - coverage run -a tests/test_spot_6_7_drs.py
+    - coverage run -a tests/test_super_s2.py
+    - coverage run -a tests/test_push.py
+    - coverage run -a tests/test_misc.py
+    - coverage run -a tests/test_headers.py authorization
+
+    - echo "Starting API key tests"
     - dinamis_cli register
-    - python tests/test_headers.py access-key
+    - coverage run -a tests/test_headers.py access-key
+    - coverage run -a tests/test_misc.py
     # ensure that we une only API key from now
     - mv /root/.config/dinamis_sdk_auth/.jwt /root/.config/dinamis_sdk_auth/.jwt_
-    - python tests/test_spot_6_7_drs.py
-    - python tests/test_super_s2.py
-    - python tests/test_push.py
+    - coverage run -a tests/test_spot_6_7_drs.py
+    - coverage run -a tests/test_super_s2.py
+    - coverage run -a tests/test_push.py
     # Test API key from environment variables
     - export DINAMIS_SDK_ACCESS_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f4)
     - export DINAMIS_SDK_SECRET_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f8)
     - rm /root/.config/dinamis_sdk_auth/.apikey  # ensure that we use env. vars.
-    - python tests/test_spot_6_7_drs.py
+    - coverage run -a tests/test_spot_6_7_drs.py
     # bring back oauth2 credentials so we can revoke the API key
     - mv /root/.config/dinamis_sdk_auth/.jwt_ /root/.config/dinamis_sdk_auth/.jwt
     - dinamis_cli revoke ${DINAMIS_SDK_ACCESS_KEY}
+
+    - coverage report
+    - coverage xml
+    - coverage html
+  coverage: '/^TOTAL.+?(\d+\%)$/'
+  artifacts:
+    paths:
+      - htmlcov/
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
