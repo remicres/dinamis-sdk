@@ -28,9 +28,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
-[tool.pydocstyle]
-add_ignore = ["D103"]
-
 [project.scripts]
 dinamis_cli = "dinamis_sdk.cli:app"
 

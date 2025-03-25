@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     dinamis_sdk_secret_key: str = ""
     dinamis_sdk_retry_total: PositiveInt = 10
     dinamis_sdk_retry_backoff_factor: PositiveFloat = 0.8
-    dinamis_sdk_signing_disable_auth: bool = False
+    dinamis_sdk_digning_disable_auth: bool = False
     dinamis_sdk_signing_endpoint: str = DEFAULT_SIGNING_ENDPOINT
 
     def model_post_init(self, __context):

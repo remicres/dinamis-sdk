@@ -5,7 +5,7 @@ from ast import literal_eval
 from pydantic import BaseModel, ConfigDict
 from .utils import get_logger_for, create_session
 from .oauth2 import OAuth2Session, retrieve_token_endpoint
-from .model import ApiKey, ApiKeyStorage
+from .model import ApiKey
 from .settings import ENV
 
 
@@ -87,15 +87,13 @@ class HTTPSession:
     def prepare_connection_method(self):
         """Set the connection method."""
         # Custom server without authentication method
-        if ENV.dinamis_sdk_signing_disable_auth:
+        if ENV.dinamis_sdk_digning_disable_auth:
             self._method = BareConnectionMethod(
                 endpoint=ENV.dinamis_sdk_signing_endpoint
             )
 
         # API key method
-        elif api_key := ApiKeyStorage.from_config_dir(
-            return_empty_if_not_present=True
-        ).grab_key():
+        elif api_key := ApiKey.grab():
             self._method = ApiKeyConnectionMethod(api_key=api_key)
 
         # OAuth2 method

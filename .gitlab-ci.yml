@@ -57,9 +57,9 @@ Tests:
     - coverage run -a tests/test_super_s2.py
     - coverage run -a tests/test_push.py
     # Test API key from environment variables
-    - export DINAMIS_SDK_ACCESS_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikeystorage | cut -d'"' -f8)
-    - export DINAMIS_SDK_SECRET_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikeystorage | cut -d'"' -f12)
-    - rm /root/.config/dinamis_sdk_auth/.apikeystorage  # ensure that we use env. vars.
+    - export DINAMIS_SDK_ACCESS_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f4)
+    - export DINAMIS_SDK_SECRET_KEY=$(cat /root/.config/dinamis_sdk_auth/.apikey | cut -d'"' -f8)
+    - rm /root/.config/dinamis_sdk_auth/.apikey  # ensure that we use env. vars.
     - coverage run -a tests/test_spot_6_7_drs.py
     # bring back oauth2 credentials so we can revoke the API key
     - mv /root/.config/dinamis_sdk_auth/.jwt_ /root/.config/dinamis_sdk_auth/.jwt

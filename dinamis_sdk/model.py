@@ -28,14 +28,10 @@ class Serializable(BaseModel):  # pylint: disable = R0903
         return cfg_file
 
     @classmethod
-    def from_config_dir(cls, return_empty_if_not_present=False):
+    def from_config_dir(cls):
         """Try to load from config directory."""
         cfg_file = cls.get_cfg_file_name()
-        if cfg_file:
-            obj = cls.from_file(cfg_file)
-            if obj:
-                return obj
-        return cls() if return_empty_if_not_present else None
+        return cls.from_file(cfg_file) if cfg_file else None
 
     def to_config_dir(self):
         """Try to save to config files."""
@@ -120,33 +116,3 @@ class ApiKey(Serializable):
     def grab(cls):
         """Try to load an API key from env. or file."""
         return cls.from_env() or cls.from_config_dir()
-
-
-class ApiKeyStorage(Serializable):
-    """API key storage model."""
-
-    api_keys: dict[str, ApiKey] = {}
-
-    @classmethod
-    def grab_key(cls):
-        """Try to load an API key from env. or file."""
-        return ApiKey.from_env() or cls.from_config_dir(
-            return_empty_if_not_present=True
-        ).api_keys.get(ENV.dinamis_sdk_signing_endpoint)
-
-    def get_key_stored(self) -> ApiKey:
-        """Try to get API key from config file."""
-        assert ENV.dinamis_sdk_signing_endpoint in self.api_keys, (
-            "No valid stored API key found"
-        )
-        return self.api_keys[ENV.dinamis_sdk_signing_endpoint]
-
-    def add_key(self, key: ApiKey):
-        """Add an API key to Storage object (doesn't store into config file)."""
-        self.api_keys[ENV.dinamis_sdk_signing_endpoint] = key
-        return self
-
-    def remove_key(self):
-        """Delete API key corresponding to present signing endpoint."""
-        self.api_keys.pop(ENV.dinamis_sdk_signing_endpoint)
-        return self
