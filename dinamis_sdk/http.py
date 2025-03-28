@@ -22,14 +22,6 @@ class BareConnectionMethod(BaseModel):
         """Get the headers."""
         return {}
 
-    def model_post_init(self, __context):
-        """Post initialization."""
-        if not self.endpoint.lower().startswith(("http://", "https://")):
-            raise ValueError(f"{self.endpoint} must start with http[s]://")
-        if not self.endpoint.endswith("/"):
-            self.endpoint += "/"
-        return self.endpoint
-
 
 class OAuth2ConnectionMethod(BareConnectionMethod):
     """OAuth2 connection method."""
@@ -87,7 +79,7 @@ class HTTPSession:
     def prepare_connection_method(self):
         """Set the connection method."""
         # Custom server without authentication method
-        if ENV.dinamis_sdk_digning_disable_auth:
+        if ENV.dinamis_sdk_signing_disable_auth:
             self._method = BareConnectionMethod(
                 endpoint=ENV.dinamis_sdk_signing_endpoint
             )

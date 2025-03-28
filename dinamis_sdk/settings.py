@@ -3,6 +3,7 @@
 import os
 from pydantic_settings import BaseSettings
 from pydantic.types import NonNegativeInt, PositiveInt, PositiveFloat
+from pydantic import field_validator
 import appdirs  # type: ignore
 from .utils import get_logger_for
 
@@ -27,13 +28,18 @@ class Settings(BaseSettings):
     dinamis_sdk_secret_key: str = ""
     dinamis_sdk_retry_total: PositiveInt = 10
     dinamis_sdk_retry_backoff_factor: PositiveFloat = 0.8
-    dinamis_sdk_digning_disable_auth: bool = False
+    dinamis_sdk_signing_disable_auth: bool = False
     dinamis_sdk_signing_endpoint: str = DEFAULT_SIGNING_ENDPOINT
 
-    def model_post_init(self, __context):
-        """Signing endpoint validation module."""
-        if not self.dinamis_sdk_signing_endpoint.endswith("/"):
-            self.dinamis_sdk_signing_endpoint = self.dinamis_sdk_signing_endpoint + "/"
+    @field_validator("dinamis_sdk_signing_endpoint", mode="after")
+    @classmethod
+    def val_endpoint_after(cls, val):
+        """Post initialization."""
+        if not val.lower().startswith(("http://", "https://")):
+            raise ValueError(f"{val} must start with http[s]://")
+        if not val.endswith("/"):
+            val += "/"
+        return val
 
 
 ENV = Settings()
